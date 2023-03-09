@@ -70,9 +70,11 @@ app.post("/login", async (req, res) => {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
       username,
     ]);
+    if (user.rowCount === 0)
+      throw new Error("Username or Password is incorrect ");
+
     const valid = await compare(password, user.rows[0].password);
 
-    if (user.rows.length === 0) throw new Error("User not found");
     if (!valid) throw new Error("Username or Password is incorrect ");
 
     const accessToken = createAccessToken(user.rows[0].user_id);
