@@ -136,24 +136,26 @@ app.post("/refresh_token", async (req, res) => {
   const token = req.cookies.refreshtoken;
 
   if (!token) return res.send({ accesstoken: "" });
-
   let payload = null;
   try {
     payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
   } catch (err) {
     return res.send({ accesstoken: "" });
   }
-  console.log(payload);
+
   const user = await pool.query("SELECT * from users WHERE user_id = $1", [
     payload.userId,
   ]);
+
+  console.log(user.rows);
+  console.log(payload.userId);
   if (user.rowCount == 0) return res.send({ accesstoken: "" });
 
   if (user.rows[0].refresh_token !== token)
     return res.send({ accesstoken: "" });
 
-  const accesstoken = createAccessToken(user.user_id);
-  const refreshtoken = createRefreshToken(user.user_id);
+  const accesstoken = createAccessToken(user.rows[0].user_id);
+  const refreshtoken = createRefreshToken(user.rows[0].user_id);
   const updatedUser = await pool.query(
     "UPDATE users SET refresh_token = $1 WHERE user_id = $2",
     [refreshtoken, payload.userId]
