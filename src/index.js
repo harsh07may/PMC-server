@@ -14,7 +14,7 @@ const {
 
 const pool = require("../db");
 
-const { isAuth } = require("./isAuth");
+const { isAuth, authMiddleware } = require("./isAuth");
 
 const app = express();
 dotenv.config();
@@ -101,9 +101,10 @@ app.post("/logout", (req, res) => {
 });
 
 // 4. Protected Routes
-app.post("/add", async (req, res) => {
+app.post("/add", authMiddleware, async (req, res) => {
   try {
     const userId = isAuth(req);
+    console.log("hello", JSON.stringify(req.User, null, 2));
     if (userId !== null) {
       const { content_desc } = req.body;
       const newContent = await pool.query(
