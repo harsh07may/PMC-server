@@ -1,7 +1,9 @@
-const { verify } = require("jsonwebtoken");
-const { AuthenticationError } = require("./models/errors");
+import { verify } from "jsonwebtoken";
+import { AuthenticationError } from "./models/errors";
+import { getEnv } from "./utils/constants";
+import express, {Request, Response} from "express"
 
-const isAuth = (req) => {
+export const isAuth = (req: Request, res: Response) => {
   // const authorization = req.header("authorization");
   const authorization = req.header("authorization");
 
@@ -12,11 +14,11 @@ const isAuth = (req) => {
   }
 
   const token = authorization.split(" ")[1];
-  const { userId } = verify(token, process.env.ACCESS_TOKEN_SECRET);
+  const { userId } = verify(token, String(getEnv("ACCESS_TOKEN_SECRET")));
   return userId;
 };
 
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req: Request, res: Response, next: Function) => {
   const authorization = req.header("authorization");
 
   if (!authorization) {
@@ -28,14 +30,10 @@ const authMiddleware = (req, res, next) => {
 
   const token = authorization.replace("Bearer ", "");
   // console.log("token -->>" + token);
-  const userData = verify(token, process.env.ACCESS_TOKEN_SECRET);
+  const userData = verify(token, String(getEnv("ACCESS_TOKEN_SECRET")));
 
   req.User = userData;
 
   next();
 };
 
-module.exports = {
-  isAuth,
-  authMiddleware,
-};

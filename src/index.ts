@@ -1,24 +1,20 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const { verify } = require("jsonwebtoken");
-const { hash, compare } = require("bcryptjs");
+import express, {Request, Response} from "express"
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import { JwtPayload, verify } from "jsonwebtoken";
+import { hash, compare } from "bcryptjs";
+import { getEnv } from "./utils/constants";
 
-const {
-  createAccessToken,
-  createRefreshToken,
-  sendAccessToken,
-  sendRefreshToken,
-} = require("./tokens");
+import { createAccessToken, createRefreshToken, appendAccessToken, appendRefreshToken } from "./tokens";
 
-const pool = require("../db");
+// dotenv.config();
 
-const { isAuth, authMiddleware } = require("./isAuth");
-const { FailedLoginError, ExistingUserError } = require("./models/errors");
+import {pool} from "./utils/db";
+
+import { isAuth, authMiddleware } from "./isAuth";
+import { FailedLoginError, ExistingUserError } from "./models/errors";
 
 const app = express();
-dotenv.config();
 
 //MIDDLEWARE
 app.use(cookieParser());
@@ -33,18 +29,18 @@ app.use(express.urlencoded({ extended: true })); //support url encoded bodies
 
 //ROUTES
 
-app.get("/getall", async (req, res) => {
+app.get("/getall", async (req: Request, res: Response) => {
   try {
     const allContent = await pool.query("SELECT * from users");
 
     res.json(allContent.rows);
-  } catch (err) {
+  } catch (err: any) {
     console.log(err.message);
   }
 });
 
 //1.Register an user
-app.post("/register", async (req, res) => {
+app.post("/register", async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
@@ -62,14 +58,14 @@ app.post("/register", async (req, res) => {
       [username, hashedpassword]
     );
     res.json(newUser.rows[0]);
-  } catch (err) {
+  } catch (err: any) {
     res.send({ error: `${err.message}` });
   }
 });
 
 //2.Login
 
-app.post("/login", async (req, res) => {
+app.post("/login", async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
@@ -97,9 +93,9 @@ app.post("/login", async (req, res) => {
       [refreshToken, username]
     );
 
-    sendRefreshToken(res, refreshToken);
-    sendAccessToken(res, req, accessToken);
-  } catch (err) {
+    appendRefreshToken(res, refreshToken);
+    appendAccessToken(res, req, accessToken);
+  } catch (err: any) {
     res.send({ error: `${err.message}` });
   }
 });
@@ -113,11 +109,11 @@ app.post("/logout", (req, res) => {
 });
 
 // 4. Protected Routes
-app.post("/add", authMiddleware, async (req, res) => {
+app.post("/add", authMiddleware, async (req: Request, res: Response) => {
   try {
     // const userId = isAuth(req);
     // console.log("user data ->>", JSON.stringify(req.User, null, 2));
-    const userId = req.User.userId;
+    const userId = req.User?.userId;
     if (userId !== null) {
       const { content_desc } = req.body;
       const newContent = await pool.query(
@@ -126,20 +122,20 @@ app.post("/add", authMiddleware, async (req, res) => {
       );
       res.json(newContent.rows[0]);
     }
-  } catch (err) {
+  } catch (err: any) {
     res.send({ error: `${err.message}` });
   }
 });
 
 // 5. Generate token with refresh token
-app.post("/refresh_token", async (req, res) => {
+app.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
 
   if (!token) return res.send({ accesstoken: "" });
 
-  let payload = null;
+  let payload: JwtPayload | null = null;
   try {
-    payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
+    payload = verify(token, String(getEnv("REFRESH_TOKEN_SECRET"))) as JwtPayload;
   } catch (err) {
     return res.send({ accesstoken: "" });
   }
@@ -158,7 +154,7 @@ app.post("/refresh_token", async (req, res) => {
     "UPDATE users SET refresh_token = $1 WHERE user_id = $2",
     [refreshtoken, payload.userId]
   );
-  sendRefreshToken(res, refreshtoken);
+  appendRefreshToken(res, refreshtoken);
   return res.send({ accesstoken });
 });
 
