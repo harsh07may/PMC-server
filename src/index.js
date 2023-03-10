@@ -14,7 +14,8 @@ const {
 
 const pool = require("../db");
 
-const { isAuth } = require("./isAuth");
+const { isAuth, authMiddleware } = require("./isAuth");
+const { FailedLoginError, ExistingUserError } = require("./models/errors");
 
 const app = express();
 dotenv.config();
@@ -49,7 +50,11 @@ app.post("/register", async (req, res) => {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
       username,
     ]);
-    if (user.rows.length > 0) throw new Error("User already exists");
+    if (user.rows.length > 0) {
+      // throw new Error("User already exists");
+      const err = new ExistingUserError("User already exists");
+      return res.status(err.statusCode).send({ error: err });
+    }
     const hashedpassword = await hash(password, 10);
 
     const newUser = await pool.query(
@@ -71,10 +76,18 @@ app.post("/login", async (req, res) => {
       username,
     ]);
 
-    if (user.rows.length === 0)
-      throw new Error("Username or Password is incorrect ");
+    if (user.rows.length === 0) {
+      // throw new Error("Username or Password is incorrect ");
+      const err = new FailedLoginError("Username or Password is incorrect");
+      return res.status(err.statusCode).send({ error: err });
+    }
+
     const valid = await compare(password, user.rows[0].password);
-    if (!valid) throw new Error("Username or Password is incorrect ");
+    if (!valid) {
+      // throw new Error("Username or Password is incorrect ");
+      const err = new FailedLoginError("Username or Password is incorrect");
+      return res.status(err.statusCode).send({ error: err });
+    }
 
     const accessToken = createAccessToken(user.rows[0].user_id);
     const refreshToken = createRefreshToken(user.rows[0].user_id);
@@ -100,9 +113,11 @@ app.post("/logout", (req, res) => {
 });
 
 // 4. Protected Routes
-app.post("/add", async (req, res) => {
+app.post("/add", authMiddleware, async (req, res) => {
   try {
-    const userId = isAuth(req);
+    // const userId = isAuth(req);
+    // console.log("user data ->>", JSON.stringify(req.User, null, 2));
+    const userId = req.User.userId;
     if (userId !== null) {
       const { content_desc } = req.body;
       const newContent = await pool.query(
