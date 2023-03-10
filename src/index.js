@@ -70,9 +70,9 @@ app.post("/login", async (req, res) => {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
       username,
     ]);
-    const valid = await compare(password, user.rows[0].password);
 
     if (user.rows.length === 0) throw new Error("User not found");
+    const valid = await compare(password, user.rows[0].password);
     if (!valid) throw new Error("Username or Password is incorrect ");
 
     const accessToken = createAccessToken(user.rows[0].user_id);
@@ -113,6 +113,32 @@ app.post("/add", async (req, res) => {
   } catch (err) {
     res.send({ error: `${err.message}` });
   }
+});
+
+// 5. Generate token with refresh token
+app.post("/refresh_token", async (req, res) => {
+  const token = req.cookies.refreshtoken;
+  console.log(token);
+  if (!token) return res.send({ accesstoken: "" });
+  let payload = null;
+  try {
+    payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    return res.send({ accesstoken: "" });
+  }
+  const user = await pool.query("SELECT * from users WHERE user_id = $1", [
+    payload.user_id,
+  ]);
+  if (user.rowCount == 0) return res.send({ accesstoken: "" });
+  if (user.refresh_token !== token) return res.send({ accesstoken: "" });
+  const accesstoken = createAccessToken(user.user_id);
+  const refreshtoken = createAccessToken(user.user_id);
+  const updatedUser = await pool.query(
+    "UPDATE users SET refresh_token = $1 WHERE username = $2",
+    [refreshtoken, username]
+  );
+  sendRefreshToken(res, refreshtoken);
+  return res.send({ accesstoken });
 });
 
 //LISTENER
