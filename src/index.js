@@ -71,7 +71,8 @@ app.post("/login", async (req, res) => {
       username,
     ]);
 
-    if (user.rows.length === 0) throw new Error("User not found");
+    if (user.rows.length === 0)
+      throw new Error("Username or Password is incorrect ");
     const valid = await compare(password, user.rows[0].password);
     if (!valid) throw new Error("Username or Password is incorrect ");
 
