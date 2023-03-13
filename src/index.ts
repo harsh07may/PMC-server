@@ -4,7 +4,7 @@ import cors from "cors";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { hash, compare } from "bcryptjs";
 import { getEnv } from "./utils/constants";
-
+import {router as Authroute } from "./routes/authRoute"
 import { createAccessToken, createRefreshToken, appendAccessToken, appendRefreshToken } from "./tokens";
 
 // dotenv.config();
@@ -39,74 +39,7 @@ app.get("/getall", async (req: Request, res: Response) => {
   }
 });
 
-//1.Register an user
-app.post("/register", async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  try {
-    const user = await pool.query("SELECT * from users WHERE username = $1", [
-      username,
-    ]);
-    if (user.rows.length > 0) {
-      // throw new Error("User already exists");
-      const err = new ExistingUserError("User already exists");
-      return res.status(err.statusCode).send({ error: err });
-    }
-    const hashedpassword = await hash(password, 10);
-
-    const newUser = await pool.query(
-      "INSERT INTO users (username,password) VALUES($1,$2) RETURNING *",
-      [username, hashedpassword]
-    );
-    res.json(newUser.rows[0]);
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
-  }
-});
-
-//2.Login
-
-app.post("/login", async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  try {
-    const user = await pool.query("SELECT * from users WHERE username = $1", [
-      username,
-    ]);
-
-    if (user.rows.length === 0) {
-      // throw new Error("Username or Password is incorrect ");
-      const err = new FailedLoginError("Username or Password is incorrect");
-      return res.status(err.statusCode).send({ error: err });
-    }
-
-    const valid = await compare(password, user.rows[0].password);
-    if (!valid) {
-      // throw new Error("Username or Password is incorrect ");
-      const err = new FailedLoginError("Username or Password is incorrect");
-      return res.status(err.statusCode).send({ error: err });
-    }
-
-    const accessToken = createAccessToken(user.rows[0].user_id);
-    const refreshToken = createRefreshToken(user.rows[0].user_id);
-
-    const updatedUser = await pool.query(
-      "UPDATE users SET refresh_token = $1 WHERE username = $2",
-      [refreshToken, username]
-    );
-
-    appendRefreshToken(res, refreshToken);
-    appendAccessToken(req, res, accessToken);
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
-  }
-});
-
-// 3.Logout
-app.post("/logout", (req: Request, res: Response) => {
-  res.clearCookie("refreshtoken", { path: "/refresh_token" });
-  return res.send({
-    message: "Logged Out",
-  });
-});
+app.use("/api/v1/user", Authroute);
 
 // 4. Protected Routes
 app.post("/add", authMiddleware, async (req: Request, res: Response) => {
