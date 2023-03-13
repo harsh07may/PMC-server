@@ -20,7 +20,7 @@ const db_1 = require("../utils/db");
 const errors_1 = require("../models/errors");
 //1.Register an user
 exports.router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password } = req.body;
+    const { username, fullname, designation, password, roles } = req.body;
     try {
         const user = yield db_1.pool.query("SELECT * from users WHERE username = $1", [
             username,
@@ -31,7 +31,7 @@ exports.router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0,
             return res.status(err.statusCode).send({ error: err });
         }
         const hashedpassword = yield (0, bcryptjs_1.hash)(password, 10);
-        const newUser = yield db_1.pool.query("INSERT INTO users (username,password) VALUES($1,$2) RETURNING *", [username, hashedpassword]);
+        const newUser = yield db_1.pool.query("INSERT INTO users (username,fullname,designation,password,roles) VALUES($1,$2,$3,$4,$5) RETURNING *", [username, fullname, designation, hashedpassword, roles]);
         res.json(newUser.rows[0]);
     }
     catch (err) {
@@ -56,8 +56,8 @@ exports.router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, fu
             const err = new errors_1.FailedLoginError("Username or Password is incorrect");
             return res.status(err.statusCode).send({ error: err });
         }
-        const accessToken = (0, tokens_1.createAccessToken)(user.rows[0].user_id);
-        const refreshToken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id);
+        const accessToken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username);
+        const refreshToken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username);
         const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE username = $2", [refreshToken, username]);
         (0, tokens_1.appendRefreshToken)(res, refreshToken);
         (0, tokens_1.appendAccessToken)(req, res, accessToken);
@@ -85,7 +85,6 @@ exports.router.post("/refresh_token", (req, res) => __awaiter(void 0, void 0, vo
     catch (err) {
         return res.send({ accesstoken: "" });
     }
-    console.log(payload);
     const user = yield db_1.pool.query("SELECT * from users WHERE user_id = $1", [
         payload.userId,
     ]);
@@ -93,8 +92,8 @@ exports.router.post("/refresh_token", (req, res) => __awaiter(void 0, void 0, vo
         return res.send({ accesstoken: "" });
     if (user.rows[0].refresh_token !== token)
         return res.send({ accesstoken: "" });
-    const accesstoken = (0, tokens_1.createAccessToken)(user.user_id);
-    const refreshtoken = (0, tokens_1.createRefreshToken)(user.user_id);
+    const accesstoken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username);
+    const refreshtoken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username);
     const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE user_id = $2", [refreshtoken, payload.userId]);
     (0, tokens_1.appendRefreshToken)(res, refreshtoken);
     return res.send({ accesstoken });

@@ -9,7 +9,7 @@ import { FailedLoginError, ExistingUserError } from "../models/errors";
 
 //1.Register an user
 router.post("/register", async (req: Request, res: Response) => {
-    const { username, password } = req.body;
+    const { username,fullname,designation, password,roles } = req.body;
     try {
       const user = await pool.query("SELECT * from users WHERE username = $1", [
         username,
@@ -22,8 +22,8 @@ router.post("/register", async (req: Request, res: Response) => {
       const hashedpassword = await hash(password, 10);
   
       const newUser = await pool.query(
-        "INSERT INTO users (username,password) VALUES($1,$2) RETURNING *",
-        [username, hashedpassword]
+        "INSERT INTO users (username,fullname,designation,password,roles) VALUES($1,$2,$3,$4,$5) RETURNING *",
+        [username,fullname,designation,hashedpassword,roles]
       );
       res.json(newUser.rows[0]);
     } catch (err: any) {
@@ -53,8 +53,8 @@ router.post("/register", async (req: Request, res: Response) => {
         return res.status(err.statusCode).send({ error: err });
       }
   
-      const accessToken = createAccessToken(user.rows[0].user_id);
-      const refreshToken = createRefreshToken(user.rows[0].user_id);
+      const accessToken = createAccessToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
+      const refreshToken = createRefreshToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
   
       const updatedUser = await pool.query(
         "UPDATE users SET refresh_token = $1 WHERE username = $2",
@@ -87,7 +87,6 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
   } catch (err) {
     return res.send({ accesstoken: "" });
   }
-  console.log(payload);
   const user = await pool.query("SELECT * from users WHERE user_id = $1", [
     payload.userId,
   ]);
@@ -96,8 +95,8 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
   if (user.rows[0].refresh_token !== token)
     return res.send({ accesstoken: "" });
 
-  const accesstoken = createAccessToken(user.user_id);
-  const refreshtoken = createRefreshToken(user.user_id);
+  const accesstoken = createAccessToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
+  const refreshtoken = createRefreshToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
   const updatedUser = await pool.query(
     "UPDATE users SET refresh_token = $1 WHERE user_id = $2",
     [refreshtoken, payload.userId]

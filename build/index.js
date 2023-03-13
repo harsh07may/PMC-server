@@ -15,11 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
-const jsonwebtoken_1 = require("jsonwebtoken");
-const constants_1 = require("./utils/constants");
 const authRoute_1 = require("./routes/authRoute");
-const tokens_1 = require("./tokens");
-// dotenv.config();
 const db_1 = require("./utils/db");
 const isAuth_1 = require("./isAuth");
 const app = (0, express_1.default)();
@@ -58,32 +54,6 @@ app.post("/add", isAuth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0
     catch (err) {
         res.send({ error: `${err.message}` });
     }
-}));
-// 5. Generate token with refresh token
-app.post("/refresh_token", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const token = req.cookies.refreshtoken;
-    if (!token)
-        return res.send({ accesstoken: "" });
-    let payload = null;
-    try {
-        payload = (0, jsonwebtoken_1.verify)(token, String((0, constants_1.getEnv)("REFRESH_TOKEN_SECRET")));
-    }
-    catch (err) {
-        return res.send({ accesstoken: "" });
-    }
-    console.log(payload);
-    const user = yield db_1.pool.query("SELECT * from users WHERE user_id = $1", [
-        payload.userId,
-    ]);
-    if (user.rowCount == 0)
-        return res.send({ accesstoken: "" });
-    if (user.rows[0].refresh_token !== token)
-        return res.send({ accesstoken: "" });
-    const accesstoken = (0, tokens_1.createAccessToken)(user.user_id);
-    const refreshtoken = (0, tokens_1.createRefreshToken)(user.user_id);
-    const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE user_id = $2", [refreshtoken, payload.userId]);
-    (0, tokens_1.appendRefreshToken)(res, refreshtoken);
-    return res.send({ accesstoken });
 }));
 //LISTENER
 app.listen(process.env.PORT, () => {

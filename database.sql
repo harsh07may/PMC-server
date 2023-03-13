@@ -3,8 +3,10 @@ CREATE DATABASE digitization;
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
+    fullname TEXT NOT NULL,
+    designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    roles TEXT NOT NULL
 );
 
 CREATE TABLE content(
