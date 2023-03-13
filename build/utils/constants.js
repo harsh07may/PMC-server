@@ -7,7 +7,11 @@ exports.APP_VERSION = exports.getEnv = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const getEnv = (key) => {
-    return process.env[key];
+    const value = process.env[key];
+    if (value == undefined) {
+        throw Error(`${key} not found in ENV`);
+    }
+    return value;
 };
 exports.getEnv = getEnv;
 exports.APP_VERSION = "beta";

@@ -94,14 +94,14 @@ app.post("/login", async (req: Request, res: Response) => {
     );
 
     appendRefreshToken(res, refreshToken);
-    appendAccessToken(res, req, accessToken);
+    appendAccessToken(req, res, accessToken);
   } catch (err: any) {
     res.send({ error: `${err.message}` });
   }
 });
 
 // 3.Logout
-app.post("/logout", (req, res) => {
+app.post("/logout", (req: Request, res: Response) => {
   res.clearCookie("refreshtoken", { path: "/refresh_token" });
   return res.send({
     message: "Logged Out",
