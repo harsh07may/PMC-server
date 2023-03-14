@@ -1,9 +1,9 @@
 import express, {Request, Response} from "express"
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import {router as Authroute } from "./routes/authRoute"
 import {pool} from "./utils/db";
-import { isAuth, authMiddleware } from "./isAuth";
+import {router as Authroute } from "./routes/authRoute"
+import {router as DigitizationRoute} from "./routes/authRoute"
 const app = express();
 
 //MIDDLEWARE
@@ -30,25 +30,9 @@ app.get("/getall", async (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/user", Authroute);
+app.use("/api/v1/user", DigitizationRoute);
 
-// 4. Protected Routes
-app.post("/add", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    // const userId = isAuth(req);
-    // console.log("user data ->>", JSON.stringify(req.User, null, 2));
-    const userId = req.User?.userId;
-    if (userId !== null) {
-      const { content_desc } = req.body;
-      const newContent = await pool.query(
-        "INSERT INTO content (content_desc) VALUES($1) RETURNING *",
-        [content_desc]
-      );
-      res.json(newContent.rows[0]);
-    }
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
-  }
-});
+
 
 
 //LISTENER
