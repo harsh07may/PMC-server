@@ -56,19 +56,27 @@ router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
       res.json(req.User);
   })
 
+  router.get("/file-download", authMiddleware,async (req, res) => {
+   try {
+    const path = req.query.doc_name;
+    console.log(path);
+    const document = await pool.query("SELECT * from document WHERE doc_name = $1", [path]);
+    if(document.rowCount===0) throw new Error("File not found");
+    res.sendFile(document.rows[0].doc_location);
+   } catch (error:any) {
+    res.send({ error: `${error.message}` });
+   }
+
+  });
   
-  router.post("/search", authMiddleware,async (req: Request, res: Response)=>{
-    try {
-        const {doc_id} = req.body;
-        console.log("doc_id"+doc_id);
+//   router.post("/search",async (req: Request, res: Response)=>{
+//     try {
+//         const {doc_id} = req.body;
+//         console.log("doc_id"+doc_id);
     
-        const document = await pool.query("SELECT * from document WHERE doc_id = $1", [doc_id]);
-        // console.log(document.rows[0]);
-        if(document.rowCount===0) throw new Error("File not found");
-        res.download(document.rows[0].doc_location);
-    } catch (error:any) {
-
-        res.send({ error: `${error.message}` });
-
-    }
-})
+//         const document = await pool.query("SELECT * from document WHERE doc_id = $1", [doc_id]);
+//         if(document.rowCount===0) throw new Error("File not found");
+//         res.download(document.rows[0].doc_location);
+//     } catch (error:any) {
+//     }
+// })
