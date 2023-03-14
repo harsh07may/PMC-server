@@ -9,10 +9,11 @@ CREATE TABLE users(
     roles TEXT NOT NULL
 );
 
-CREATE TABLE content(
-    content_id SERIAL PRIMARY KEY,
-    content_desc VARCHAR(255)
-    refresh_token VARCHAR(255)
+CREATE TABLE document(
+    doc_id SERIAL PRIMARY KEY,
+    doc_name TEXT NOT NULL,
+    doc_location TEXT NOT NULL,
+    doc_type TEXT NOT NULL
 );
 
 

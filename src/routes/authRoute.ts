@@ -1,4 +1,5 @@
-import { Router,Response, Request } from "express";
+import { Express,Router,Response, Request } from "express";
+import cookieParser from "cookie-parser";
 export const router = Router();
 import { hash, compare } from "bcryptjs";
 import { JwtPayload, verify } from "jsonwebtoken";
@@ -6,6 +7,8 @@ import { getEnv } from "../utils/constants";
 import { createAccessToken, createRefreshToken, appendAccessToken, appendRefreshToken } from "../tokens";
 import {pool} from "../utils/db";
 import { FailedLoginError, ExistingUserError } from "../models/errors";
+
+router.use(cookieParser());
 
 //1.Register an user
 router.post("/register", async (req: Request, res: Response) => {
@@ -75,12 +78,14 @@ router.post("/register", async (req: Request, res: Response) => {
       message: "Logged Out",
     });
   });
-  // 5. Generate token with refresh token
+
+
+ // 5. Generate token with refresh token
 router.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
 
+  console.log("Cookie:"+JSON.stringify(req.cookies));
   if (!token) return res.send({ accesstoken: "" });
-
   let payload: JwtPayload | null = null;
   try {
     payload = verify(token, String(getEnv("REFRESH_TOKEN_SECRET"))) as JwtPayload;

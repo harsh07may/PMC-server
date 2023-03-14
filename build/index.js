@@ -15,9 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
-const authRoute_1 = require("./routes/authRoute");
 const db_1 = require("./utils/db");
-const isAuth_1 = require("./isAuth");
+const authRoute_1 = require("./routes/authRoute");
+const authRoute_2 = require("./routes/authRoute");
 const app = (0, express_1.default)();
 //MIDDLEWARE
 app.use((0, cookie_parser_1.default)());
@@ -38,23 +38,9 @@ app.get("/getall", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 }));
 app.use("/api/v1/user", authRoute_1.router);
-// 4. Protected Routes
-app.post("/add", isAuth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    try {
-        // const userId = isAuth(req);
-        // console.log("user data ->>", JSON.stringify(req.User, null, 2));
-        const userId = (_a = req.User) === null || _a === void 0 ? void 0 : _a.userId;
-        if (userId !== null) {
-            const { content_desc } = req.body;
-            const newContent = yield db_1.pool.query("INSERT INTO content (content_desc) VALUES($1) RETURNING *", [content_desc]);
-            res.json(newContent.rows[0]);
-        }
-    }
-    catch (err) {
-        res.send({ error: `${err.message}` });
-    }
-}));
+app.use("/api/v1/digitization", authRoute_2.router);
+// app.use("/api/v1/user", LeaveRoute);
+// app.use("/api/v1/user", TrackingRoute);
 //LISTENER
 app.listen(process.env.PORT, () => {
     console.log(`Server started on port ${process.env.PORT}`);

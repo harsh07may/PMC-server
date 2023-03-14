@@ -56,8 +56,8 @@ exports.router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, fu
             const err = new errors_1.FailedLoginError("Username or Password is incorrect");
             return res.status(err.statusCode).send({ error: err });
         }
-        const accessToken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username);
-        const refreshToken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username);
+        const accessToken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
+        const refreshToken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
         const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE username = $2", [refreshToken, username]);
         (0, tokens_1.appendRefreshToken)(res, refreshToken);
         (0, tokens_1.appendAccessToken)(req, res, accessToken);
@@ -92,8 +92,8 @@ exports.router.post("/refresh_token", (req, res) => __awaiter(void 0, void 0, vo
         return res.send({ accesstoken: "" });
     if (user.rows[0].refresh_token !== token)
         return res.send({ accesstoken: "" });
-    const accesstoken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username);
-    const refreshtoken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username);
+    const accesstoken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
+    const refreshtoken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
     const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE user_id = $2", [refreshtoken, payload.userId]);
     (0, tokens_1.appendRefreshToken)(res, refreshtoken);
     return res.send({ accesstoken });
