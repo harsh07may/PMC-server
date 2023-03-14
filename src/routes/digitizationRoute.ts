@@ -1,6 +1,6 @@
 import { Router,Response, Request } from "express";
 export const router = Router();
-import { isAuth, authMiddleware } from "../isAuth";
+import { authMiddleware } from "../isAuth";
 import {pool} from "../utils/db";
 
 
@@ -10,11 +10,7 @@ import {pool} from "../utils/db";
 // 4. Protected Routes
 router.post("/add", authMiddleware, async (req: Request, res: Response) => {
     try {
-      // const userId = isAuth(req);
-      // console.log("user data ->>", JSON.stringify(req.User, null, 2));
       const userId = req.User?.userId;
-    //   const userRole = req.User?.userRole;
-    console.log(req.body);
       if (userId !== null) {
         const { doc_name, doc_location,doc_type} = req.body;
         const newContent = await pool.query(

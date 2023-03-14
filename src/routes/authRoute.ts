@@ -66,6 +66,8 @@ router.post("/register", async (req: Request, res: Response) => {
   
       appendRefreshToken(res, refreshToken);
       appendAccessToken(req, res, accessToken);
+
+
     } catch (err: any) {
       res.send({ error: `${err.message}` });
     }
@@ -84,7 +86,6 @@ router.post("/register", async (req: Request, res: Response) => {
 router.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
 
-  console.log("Cookie:"+JSON.stringify(req.cookies));
   if (!token) return res.send({ accesstoken: "" });
   let payload: JwtPayload | null = null;
   try {
