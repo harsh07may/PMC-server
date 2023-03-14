@@ -27,10 +27,3 @@ export const appendRefreshToken = (res: Response, refreshtoken: string) => {
     path: "/api/v1/user/refresh_token",
   });
 };
-
-// module.exports = {
-//   createAccessToken,
-//   createRefreshToken,
-//   sendAccessToken,
-//   sendRefreshToken,
-// };

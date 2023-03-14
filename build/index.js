@@ -17,7 +17,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
 const db_1 = require("./utils/db");
 const authRoute_1 = require("./routes/authRoute");
-const authRoute_2 = require("./routes/authRoute");
+const digitizationRoute_1 = require("./routes/digitizationRoute");
 const app = (0, express_1.default)();
 //MIDDLEWARE
 app.use((0, cookie_parser_1.default)());
@@ -38,7 +38,7 @@ app.get("/getall", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 }));
 app.use("/api/v1/user", authRoute_1.router);
-app.use("/api/v1/digitization", authRoute_2.router);
+app.use("/api/v1/digitization", digitizationRoute_1.router);
 // app.use("/api/v1/user", LeaveRoute);
 // app.use("/api/v1/user", TrackingRoute);
 //LISTENER

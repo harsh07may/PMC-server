@@ -8,9 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.router = void 0;
 const express_1 = require("express");
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 exports.router = (0, express_1.Router)();
 const bcryptjs_1 = require("bcryptjs");
 const jsonwebtoken_1 = require("jsonwebtoken");
@@ -18,6 +22,7 @@ const constants_1 = require("../utils/constants");
 const tokens_1 = require("../tokens");
 const db_1 = require("../utils/db");
 const errors_1 = require("../models/errors");
+exports.router.use((0, cookie_parser_1.default)());
 //1.Register an user
 exports.router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, fullname, designation, password, roles } = req.body;

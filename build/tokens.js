@@ -25,13 +25,7 @@ exports.appendAccessToken = appendAccessToken;
 const appendRefreshToken = (res, refreshtoken) => {
     res.cookie("refreshtoken", refreshtoken, {
         httpOnly: true,
-        path: "/refresh_token",
+        path: "/api/v1/user/refresh_token",
     });
 };
 exports.appendRefreshToken = appendRefreshToken;
-// module.exports = {
-//   createAccessToken,
-//   createRefreshToken,
-//   sendAccessToken,
-//   sendRefreshToken,
-// };

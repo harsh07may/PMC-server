@@ -1,3 +1,5 @@
 node_modules
 .env
 # db.ts
+request.rest
+uploads
