@@ -6,7 +6,8 @@ CREATE TABLE users(
     fullname TEXT NOT NULL,
     designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    roles TEXT NOT NULL
+    roles TEXT NOT NULL,
+    refresh_token TEXT,
 );
 
 CREATE TABLE document(

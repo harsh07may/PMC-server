@@ -1,6 +1,6 @@
 import { Router,Response, Request } from "express";
 export const router = Router();
-import { authMiddleware } from "../isAuth";
+import { authMiddleware } from "../authMiddleware";
 import {pool} from "../utils/db";
 import multer = require("multer");
 import * as fs from 'fs';
