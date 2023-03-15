@@ -3,14 +3,17 @@ CREATE DATABASE digitization;
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
+    fullname TEXT NOT NULL,
+    designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    roles TEXT NOT NULL
 );
 
-CREATE TABLE content(
-    content_id SERIAL PRIMARY KEY,
-    content_desc VARCHAR(255)
-    refresh_token VARCHAR(255)
+CREATE TABLE document(
+    doc_id SERIAL PRIMARY KEY,
+    doc_name TEXT NOT NULL,
+    doc_location TEXT NOT NULL,
+    doc_type TEXT NOT NULL
 );
 
 

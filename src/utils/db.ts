@@ -9,7 +9,6 @@ const db_config = {
   post: 5432,
   database: "digitization",
 };
-console.log(db_config);
 
 export const pool = new Pool(db_config);
 

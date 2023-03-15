@@ -1,0 +1,15 @@
+POST http://localhost:5000/api/v1/user/login
+{
+    "username":"",
+    "fullname":"",
+    "designation":"",
+    "password":"",
+    "roles":""
+}
+
+POST http://localhost:5000/api/v1/user/login
+{
+    "username":"harsh07may",
+    "password":"harsh123"
+}
+
