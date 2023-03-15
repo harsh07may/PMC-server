@@ -8,7 +8,7 @@ const upload = multer({ dest: 'uploads/' });
 import { AccessDeniedError } from "../models/errors";
 
 
-router.post("/upload",authMiddleware,upload.single('file'), (req, res) => {
+router.post("/upload",upload.single('file'), (req, res) => {
     console.log(req.file);
     if (req.file == null) {
         return res.status(400).json({ 'message': 'Please choose one file' })
@@ -31,14 +31,13 @@ router.post("/upload",authMiddleware,upload.single('file'), (req, res) => {
 })
 
 // 4. Protected Routes
-router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
-    const {doc_name,doc_location,doc_type} = req.body;
+router.post("/insert", async (req: Request, res: Response) => {
     try {
     //   const userId = req.User?.userId;
-        const { doc_name, doc_location,doc_type} = req.body;
+        const { wardno,subdivno,title,filelink} = req.body;
         const newContent = await pool.query(
-          "INSERT INTO document (doc_name,doc_location,doc_type) VALUES($1,$2,$3) RETURNING *",
-          [doc_name,doc_location,doc_type]
+          "INSERT INTO Muncipal_Records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+          [wardno,subdivno,title,filelink]
         );
         res.json(newContent.rows[0]);
     } catch (err: any) {
@@ -66,17 +65,6 @@ router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
    } catch (error:any) {
     res.send({ error: `${error.message}` });
    }
-
   });
-  
-//   router.post("/search",async (req: Request, res: Response)=>{
-//     try {
-//         const {doc_id} = req.body;
-//         console.log("doc_id"+doc_id);
-    
-//         const document = await pool.query("SELECT * from document WHERE doc_id = $1", [doc_id]);
-//         if(document.rowCount===0) throw new Error("File not found");
-//         res.download(document.rows[0].doc_location);
-//     } catch (error:any) {
-//     }
-// })
+
+
