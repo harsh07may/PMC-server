@@ -75,7 +75,7 @@ router.post("/register", async (req: Request, res: Response) => {
   
   // 3.Logout
   router.post("/logout", (req: Request, res: Response) => {
-    res.clearCookie("refreshtoken", { path: "/refresh_token" });
+    res.clearCookie("refreshtoken", { path: "/api/v1/user/refresh_token" });
     return res.send({
       message: "Logged Out",
     });

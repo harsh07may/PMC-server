@@ -18,5 +18,15 @@ CREATE TABLE document(
 
 
 
+CREATE TABLE Muncipal_Records(
+    recordId SERIAL PRIMARY KEY,
+    wardNo TEXT NOT NULL,
+    subDivNo TEXT NOT NULL,
+    title TEXT NOT NULL,
+    fileLink TEXT,
+);
+
+
+
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
