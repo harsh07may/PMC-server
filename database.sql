@@ -3,17 +3,24 @@ CREATE DATABASE digitization;
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
+    fullname TEXT NOT NULL,
+    designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    roles TEXT NOT NULL,
+    refresh_token TEXT
 );
 
-CREATE TABLE content(
-    content_id SERIAL PRIMARY KEY,
-    content_desc VARCHAR(255)
-    refresh_token VARCHAR(255)
+CREATE TABLE Municipal_Records(
+    recordId SERIAL PRIMARY KEY,
+    wardNo TEXT NOT NULL,
+    subDivNo TEXT NOT NULL,
+    title TEXT NOT NULL,
+    fileLink TEXT
 );
-
-
 
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
+
+-- psql -U postgres
+-- \c digitization
+-- \dt

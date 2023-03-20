@@ -1,3 +1,8 @@
 node_modules
 .env
-db.js
+build
+static
+# db.ts
+request.rest
+uploads
+build
