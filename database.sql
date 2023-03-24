@@ -21,6 +21,6 @@ CREATE TABLE Municipal_Records(
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
 
--- psql -U postgres
--- \c digitization
+-- psql -U postgres => login to psql
+-- \c digitization  => switch to db
 -- \dt
