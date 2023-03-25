@@ -33,15 +33,13 @@ router.post("/upload",upload.single('file'), (req, res) => {
 // 4. Protected Routes
 router.post("/insert", async (req: Request, res: Response) => {
     try {
-    //   const userId = req.User?.userId;
-    console.log("in insert");
-    console.log(req.body);
-    const { wardno,subdivno,title,filelink} = req.body;
-    console.log(filelink);
+        console.log("in insert");
+        const { WardNo,SubDivNo,Title,FileLink} = req.body;
         const newContent = await pool.query(
-          "INSERT INTO Municipal_Records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
-          [wardno,subdivno,title,filelink]
+          "INSERT INTO municipal_records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+          [WardNo,SubDivNo,Title,FileLink]
         );
+        console.log(newContent.rows[0]);
         res.json(newContent.rows[0]);
     } catch (err: any) {
       res.send({ error: `${err.message}` });
