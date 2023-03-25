@@ -44,6 +44,18 @@ router.post("/insert", async (req: Request, res: Response) => {
       res.send({ error: `${err.message}` });
     }
   });
+  router.get("/search",async (req, res) => {
+   try {
+    const {name,type} = req.query;
+
+    const document = await pool.query("SELECT * from document WHERE doc_type = $1 or doc_name = $2", [type,name]);
+    if(document.rowCount===0) throw new Error("File not found");
+    res.send(document.rows);
+
+   } catch (error:any) {
+    res.send({ error: `${error.message}` });
+   }
+  });
 
 
   router.get("/",authMiddleware, async (req: Request, res: Response)=>{
