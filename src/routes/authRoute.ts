@@ -12,7 +12,7 @@ router.use(cookieParser());
 
 //1.Register an user
 router.post("/register", async (req: Request, res: Response) => {
-    const { username,fullname,designation, password,roles } = req.body;
+    const { username,fullname,designation, password, roles } = req.body;
     try {
       const user = await pool.query("SELECT * from users WHERE username = $1", [
         username,
@@ -42,13 +42,13 @@ router.post("/register", async (req: Request, res: Response) => {
       const user = await pool.query("SELECT * from users WHERE username = $1", [
         username,
       ]);
-  
+
       if (user.rows.length === 0) {
         // throw new Error("Username or Password is incorrect ");
         const err = new FailedLoginError("Username or Password is incorrect");
         return res.status(err.statusCode).send({ error: err });
       }
-  
+      
       const valid = await compare(password, user.rows[0].password);
       if (!valid) {
         // throw new Error("Username or Password is incorrect ");

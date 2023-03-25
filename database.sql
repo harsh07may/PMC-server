@@ -6,27 +6,21 @@ CREATE TABLE users(
     fullname TEXT NOT NULL,
     designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    roles TEXT NOT NULL
+    roles TEXT NOT NULL,
+    refresh_token TEXT
 );
 
-CREATE TABLE document(
-    doc_id SERIAL PRIMARY KEY,
-    doc_name TEXT NOT NULL,
-    doc_location TEXT NOT NULL,
-    doc_type TEXT NOT NULL
-);
-
-
-
-CREATE TABLE Muncipal_Records(
+CREATE TABLE Municipal_Records(
     recordId SERIAL PRIMARY KEY,
     wardNo TEXT NOT NULL,
     subDivNo TEXT NOT NULL,
     title TEXT NOT NULL,
-    fileLink TEXT,
+    fileLink TEXT
 );
-
-
 
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
+
+-- psql -U postgres
+-- \c digitization
+-- \dt

@@ -1,6 +1,6 @@
 import { Router,Response, Request } from "express";
 export const router = Router();
-import { authMiddleware } from "../isAuth";
+import { authMiddleware } from "../authMiddleware";
 import {pool} from "../utils/db";
 import multer = require("multer");
 import * as fs from 'fs';
@@ -18,7 +18,7 @@ router.post("/upload",upload.single('file'), (req, res) => {
         console.log(file.originalname);
 
         const fileStream = fs.createReadStream(file.path);
-        const path = `D://PMC Document Digitization//${file.originalname}`
+        const path = `D:/PMC Document Digitization/${file.originalname}`
         console.log(path);
         const wStream = fs.createWriteStream(path);
 
@@ -34,9 +34,12 @@ router.post("/upload",upload.single('file'), (req, res) => {
 router.post("/insert", async (req: Request, res: Response) => {
     try {
     //   const userId = req.User?.userId;
-        const { wardno,subdivno,title,filelink} = req.body;
+    console.log("in insert");
+    console.log(req.body);
+    const { wardno,subdivno,title,filelink} = req.body;
+    console.log(filelink);
         const newContent = await pool.query(
-          "INSERT INTO Muncipal_Records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+          "INSERT INTO Municipal_Records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
           [wardno,subdivno,title,filelink]
         );
         res.json(newContent.rows[0]);

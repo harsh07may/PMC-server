@@ -4,7 +4,7 @@ import cors from "cors";
 import {pool} from "./utils/db";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { getEnv } from "./utils/constants";
-import {router as Authroute } from "./routes/authRoute"
+import {router as AuthRoute } from "./routes/authRoute"
 import {router as DigitizationRoute} from "./routes/digitizationRoute"
 import { createAccessToken, createRefreshToken, appendAccessToken, appendRefreshToken } from "./tokens";
 
@@ -35,7 +35,7 @@ app.get("/getall", async (req: Request, res: Response) => {
   }
 });
 
-app.use("/api/v1/user", Authroute);
+app.use("/api/v1/user", AuthRoute);
 app.use("/api/v1/digitization", DigitizationRoute);
 
 
