@@ -20,8 +20,8 @@ CREATE TABLE Municipal_Records(
 CREATE TABLE Birth_Records(
     recordId SERIAL PRIMARY KEY,
     month TEXT NOT NULL,
-    year TEXT NOT NULL
-    fileLink TEXT
+    year TEXT NOT NULL,
+    fileLink TEXT NOT NULL
 );
 
 -- DELETE ALL ENTRIES AND RESET ID

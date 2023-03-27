@@ -30,47 +30,44 @@ router.post("/upload", upload.single("file"), (req, res) => {
 
 // 4. Protected Routes
 router.post("/insert", async (req: Request, res: Response) => {
-  try {
-    const { type } = req.query;
-
-    var newContent;
-    if (type === "municipal_property_record") {
-      const { WardNo, SubDivNo, Title, FileLink } = req.body;
-
-      newContent = await pool.query(
-        "INSERT INTO municipal_records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
-        [WardNo, SubDivNo, Title, FileLink]
-      );
+    try {
+      var newContent;
+      const { type } = req.body;
+      if (type == "municipal_property_record") {
+        const { WardNo, SubDivNo, Title, FileLink } = req.body;
+        newContent = await pool.query(
+          "INSERT INTO municipal_records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+          [WardNo, SubDivNo, Title, FileLink]
+        );
+      } else if (type == "birth_record") {
+        const { Month, Year, FileLink } = req.body;
+        newContent = await pool.query(
+          "INSERT INTO birth_records (month,year,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+          [Month, Year, FileLink]
+        );
+      }
+      res.json(newContent.rows[0]);
+    } catch (err: any) {
+      res.send({ error: `${err.message}` });
     }
-    if (type === "municipal_property_record") {
-      const { Month, Year, FileLink } = req.body;
-
-      newContent = await pool.query(
-        "INSERT INTO birth_records (month,year,filelink) VALUES($1,$2,$3) RETURNING *",
-        [Month, Year, FileLink]
-      );
-    }
-
-    res.json(newContent.rows[0]);
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
-  }
-});
-router.get("/search", authMiddleware, async (req, res) => {
+  });
+//TODO router.get("/search", authMiddleware, async (req, res) => {
+router.get("/search", async (req, res) => {
   try {
     const { name, type } = req.query;
+    console.log({name: name, type: type});
     var document;
-    // if(type==='municipal_records'){
-    //     document = await pool.query("SELECT * from municipal_records WHERE doc_type = $1 or doc_name = $2", [type,name]);
-    // }
-    // else if(type==='house_tax'){
-    //     document = await pool.query("SELECT * from house_tax WHERE doc_type = $1 or doc_name = $2", [type,name]);
-    // }
+    if(type==='municipal_property_record'){
+        document = await pool.query("SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%'", [name]);
+    }
+    else if(type==='house_tax'){
+        document = await pool.query("SELECT * from house_tax WHERE doc_type = $1 or doc_name = $2", [type,name]);
+    }
 
-    document = await pool.query(
-      "SELECT * from document WHERE doc_type = $1 or doc_name = $2",
-      [type, name]
-    );
+    // document = await pool.query(
+    //   "SELECT * from document WHERE doc_type = $1 or doc_name = $2",
+    //   [type, name]
+    // );
 
     if (document.rowCount === 0) throw new Error("File not found");
     res.send(document.rows);
