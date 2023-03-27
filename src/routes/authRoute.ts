@@ -93,9 +93,12 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
   } catch (err) {
     return res.send({ accesstoken: "" });
   }
+
+
   const user = await pool.query("SELECT * from users WHERE user_id = $1", [
     payload.userId,
   ]);
+  
   if (user.rowCount == 0) return res.send({ accesstoken: "" });
 
   if (user.rows[0].refresh_token !== token)

@@ -17,10 +17,16 @@ CREATE TABLE Municipal_Records(
     title TEXT NOT NULL,
     fileLink TEXT
 );
+CREATE TABLE Birth_Records(
+    recordId SERIAL PRIMARY KEY,
+    month TEXT NOT NULL,
+    year TEXT NOT NULL
+    fileLink TEXT
+);
 
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
 
--- psql -U postgres
--- \c digitization
+-- psql -U postgres => login to psql
+-- \c digitization  => switch to db
 -- \dt
