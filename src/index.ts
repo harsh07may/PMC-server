@@ -18,6 +18,7 @@ import multer from "multer";
 const app = express();
 
 //MIDDLEWARE
+//test
 app.use(cookieParser());
 app.use(
   cors({
