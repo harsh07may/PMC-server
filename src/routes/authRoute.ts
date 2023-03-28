@@ -85,7 +85,7 @@ router.post("/register", async (req: Request, res: Response) => {
  // 5. Generate token with refresh token
 router.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
-
+  console.log(req.cookies);
   if (!token) return res.send({ accesstoken: "" });
   let payload: JwtPayload | null = null;
   try {
