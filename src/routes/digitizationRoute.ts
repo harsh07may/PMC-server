@@ -36,14 +36,28 @@ router.post("/insert", async (req: Request, res: Response) => {
     if (type == "municipal_property_record") {
       const { WardNo, SubDivNo, Title, FileLink } = req.body;
       newContent = await pool.query(
-        "INSERT INTO municipal_records (wardno,subdivno,title,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+        "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [WardNo, SubDivNo, Title, FileLink]
       );
     } else if (type == "birth_record") {
       const { Month, Year, FileLink } = req.body;
       newContent = await pool.query(
-        "INSERT INTO birth_records (month,year,filelink) VALUES($1,$2,$3,$4) RETURNING *",
+        "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [Month, Year, FileLink]
+      );
+    }
+    else if(type === "house_tax_record"){
+      const {WardNo, HouseNo, Name, FileLink} = req.body;
+      newContent = await pool.query(
+        "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+        [WardNo, HouseNo, Name, FileLink]
+      );
+    }
+    else{
+      const {LicenseNo, SubDivNo, Year, Name, FileLink} = req.body;
+      newContent = await pool.query(
+        "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+        [LicenseNo, SubDivNo, Year, Name, FileLink]
       );
     }
     res.json(newContent.rows[0]);

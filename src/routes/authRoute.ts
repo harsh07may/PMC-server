@@ -25,7 +25,7 @@ router.post("/register", async (req: Request, res: Response) => {
       const hashedpassword = await hash(password, 10);
   
       const newUser = await pool.query(
-        "INSERT INTO users (username,fullname,designation,password,roles) VALUES($1,$2,$3,$4,$5) RETURNING *",
+        "INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [username,fullname,designation,hashedpassword,roles]
       );
       res.json(newUser.rows[0]);
