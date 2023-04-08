@@ -58,6 +58,11 @@ router.post("/register", async (req: Request, res: Response) => {
   
       const accessToken = createAccessToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
       const refreshToken = createRefreshToken(user.rows[0].user_id,user.rows[0].username,user.rows[0].roles);
+
+      const auditContent = await pool.query(
+        "INSERT INTO user_auditlogs(username, loggedintime) VALUES ($1, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as loggedintime)) RETURNING *",
+        [username]
+      );
   
       const updatedUser = await pool.query(
         "UPDATE users SET refresh_token = $1 WHERE username = $2",
@@ -85,7 +90,7 @@ router.post("/register", async (req: Request, res: Response) => {
  // 5. Generate token with refresh token
 router.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
-  console.log(req.cookies);
+
   if (!token) return res.send({ accesstoken: "" });
   let payload: JwtPayload | null = null;
   try {

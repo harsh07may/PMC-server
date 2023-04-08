@@ -32,13 +32,22 @@ router.post("/upload", upload.single("file"), (req, res) => {
 router.post("/insert", async (req: Request, res: Response) => {
   try {
     var newContent;
+    var auditContent;
     const { type } = req.body;
+    const {UserName} = req.body;
+    const Action = "Upload"; 
     if (type == "municipal_property_record") {
       const { WardNo, SubDivNo, Title, FileLink } = req.body;
       newContent = await pool.query(
         "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [WardNo, SubDivNo, Title, FileLink]
       );
+
+      auditContent = await pool.query(
+        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+        [type, FileLink, Action, UserName]
+      );
+      
     } else if (type == "birth_record") {
       const { Month, Year, FileLink } = req.body;
       newContent = await pool.query(
@@ -107,12 +116,20 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 
 router.get("/file-download", async (req, res) => {
   try {
-    const { doc_name } = req.query;
+    var auditContent;
+    const { doc_name, type, username} = req.query;
+    const Action = "Search";
+    
     const document = await pool.query(
-      "SELECT * from municipal_records WHERE title = $1",
+      "SELECT * from housetax_records WHERE name = $1",
       [doc_name]
     );
     if (document.rowCount === 0) throw new Error("File not found");
+
+    auditContent = await pool.query(
+      "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+      [type, document.rows[0].filelink, Action, username]
+    );
 
     const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;

@@ -7,7 +7,8 @@ CREATE TABLE users(
     designation TEXT NOT NULL,
     password TEXT NOT NULL,
     roles TEXT NOT NULL,
-    refresh_token TEXT
+    refresh_token TEXT,
+    timestamp TEXT NOT NULL
 );
 
 CREATE TABLE Municipal_Records(
@@ -43,6 +44,15 @@ CREATE TABLE ConstructionLicense_Records(
 	name TEXT NOT NULL,
     fileLink TEXT NOT NULL,
 	timestamp TEXT NOT NULL
+);
+
+CREATE TABLE SearchAdd_AuditLogs(
+	logId SERIAL PRIMARY KEY,
+	timestamp TEXT NOT NULL,
+	documentType TEXT NOT NULL,
+	resourceName TEXT NOT NULL,
+	Action TEXT NOT NULL,
+	performedBy TEXT NOT NULL
 );
 
 -- DELETE ALL ENTRIES AND RESET ID
