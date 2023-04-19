@@ -8,6 +8,11 @@ const upload = multer({ dest: "uploads/" });
 import { AccessDeniedError } from "../models/errors";
 
 router.post("/upload", authMiddleware, upload.single("file"), (req, res) => {
+  const userRole = req.User.userRoles;
+  const err = new AccessDeniedError("You need to be an Admin");
+  if (userRole != "admin" || userRole != "editor") {
+    return res.status(err.statusCode).send({ error: err });
+  }
 
   if (req.file == null) {
     return res.status(400).json({ message: "Please choose one file" });
@@ -33,6 +38,12 @@ router.post("/upload", authMiddleware, upload.single("file"), (req, res) => {
 // 4. Protected Routes
 router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userRole = req.User.userRoles;
+    const err = new AccessDeniedError("You need to be an Admin");
+    if (userRole != "admin" || userRole != "editor") {
+      return res.status(err.statusCode).send({ error: err });
+    }
+
     var newContent;
     var auditContent;
     const { type } = req.body;
