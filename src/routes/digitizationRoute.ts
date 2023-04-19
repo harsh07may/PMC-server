@@ -13,10 +13,12 @@ router.post("/upload", upload.single("file"), (req, res) => {
     return res.status(400).json({ message: "Please choose one file" });
   } else {
     const file = req.file;
-    console.log(file.originalname);
-
     const fileStream = fs.createReadStream(file.path);
-    const path = `D:/PMC Document Digitization/${file.originalname}`;
+    const date = new Date().toISOString().replace(/:/g, "-");
+    const fileName = `${date}-${file.originalname}`;
+    const path = `D:/PMC Document Digitization/${fileName}`;
+
+    // const path = `D:/PMC Document Digitization/${file.originalname}`;
     console.log(path);
     const wStream = fs.createWriteStream(path);
 
@@ -34,8 +36,8 @@ router.post("/insert", async (req: Request, res: Response) => {
     var newContent;
     var auditContent;
     const { type } = req.body;
-    const {UserName} = req.body;
-    const Action = "Upload"; 
+    const { UserName } = req.body;
+    const Action = "Upload";
     if (type == "municipal_property_record") {
       const { WardNo, SubDivNo, Title, FileLink } = req.body;
       newContent = await pool.query(
@@ -47,23 +49,20 @@ router.post("/insert", async (req: Request, res: Response) => {
         "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
         [type, FileLink, Action, UserName]
       );
-      
     } else if (type == "birth_record") {
       const { Month, Year, FileLink } = req.body;
       newContent = await pool.query(
         "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [Month, Year, FileLink]
       );
-    }
-    else if(type === "house_tax_record"){
-      const {WardNo, HouseNo, Name, FileLink} = req.body;
+    } else if (type === "house_tax_record") {
+      const { WardNo, HouseNo, Name, FileLink } = req.body;
       newContent = await pool.query(
         "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [WardNo, HouseNo, Name, FileLink]
       );
-    }
-    else{
-      const {LicenseNo, SubDivNo, Year, Name, FileLink} = req.body;
+    } else {
+      const { LicenseNo, SubDivNo, Year, Name, FileLink } = req.body;
       newContent = await pool.query(
         "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [LicenseNo, SubDivNo, Year, Name, FileLink]
@@ -85,7 +84,7 @@ router.get("/search", async (req, res) => {
         "SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'",
         [title, wardno, subdivno]
       );
-    }else if (type === "birth_record") {
+    } else if (type === "birth_record") {
       const { Month, Year } = req.query;
       document = await pool.query(
         "SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'",
@@ -125,9 +124,9 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 router.get("/file-download", async (req, res) => {
   try {
     var auditContent;
-    const { doc_name, type, username} = req.query;
+    const { doc_name, type, username } = req.query;
     const Action = "Search";
-    
+
     const document = await pool.query(
       "SELECT * from housetax_records WHERE name = $1",
       [doc_name]
