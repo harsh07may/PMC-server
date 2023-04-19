@@ -55,6 +55,12 @@ CREATE TABLE SearchAdd_AuditLogs(
 	performedBy TEXT NOT NULL
 );
 
+CREATE TABLE user_auditlogs(
+    logId SERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    loggedintime TEXT NOT NULL
+)
+
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
 

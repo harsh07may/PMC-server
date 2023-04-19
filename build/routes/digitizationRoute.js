@@ -35,59 +35,110 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.router = void 0;
 const express_1 = require("express");
 exports.router = (0, express_1.Router)();
-const isAuth_1 = require("../isAuth");
+const authMiddleware_1 = require("../authMiddleware");
 const db_1 = require("../utils/db");
 const multer = require("multer");
 const fs = __importStar(require("fs"));
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: "uploads/" });
 const errors_1 = require("../models/errors");
-exports.router.post("/upload", isAuth_1.authMiddleware, upload.single('file'), (req, res) => {
+exports.router.post("/upload", upload.single("file"), (req, res) => {
     console.log(req.file);
     if (req.file == null) {
-        return res.status(400).json({ 'message': 'Please choose one file' });
+        return res.status(400).json({ message: "Please choose one file" });
     }
     else {
         const file = req.file;
         console.log(file.originalname);
         const fileStream = fs.createReadStream(file.path);
-        const path = `D://PMC Document Digitization//${file.originalname}`;
+        const path = `D:/PMC Document Digitization/${file.originalname}`;
         console.log(path);
         const wStream = fs.createWriteStream(path);
-        fileStream.on('data', (data) => {
+        fileStream.on("data", (data) => {
             wStream.write(data);
         });
         res.send({ fileLink: `${path}` });
     }
 });
 // 4. Protected Routes
-exports.router.post("/insert", isAuth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { doc_name, doc_location, doc_type } = req.body;
+exports.router.post("/insert", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        //   const userId = req.User?.userId;
-        const { doc_name, doc_location, doc_type } = req.body;
-        const newContent = yield db_1.pool.query("INSERT INTO document (doc_name,doc_location,doc_type) VALUES($1,$2,$3) RETURNING *", [doc_name, doc_location, doc_type]);
+        var newContent;
+        var auditContent;
+        const { type } = req.body;
+        const { UserName } = req.body;
+        const Action = "Upload";
+        if (type == "municipal_property_record") {
+            const { WardNo, SubDivNo, Title, FileLink } = req.body;
+            newContent = yield db_1.pool.query("INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *", [WardNo, SubDivNo, Title, FileLink]);
+            auditContent = yield db_1.pool.query("INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *", [type, FileLink, Action, UserName]);
+        }
+        else if (type == "birth_record") {
+            const { Month, Year, FileLink } = req.body;
+            newContent = yield db_1.pool.query("INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *", [Month, Year, FileLink]);
+        }
+        else if (type === "house_tax_record") {
+            const { WardNo, HouseNo, Name, FileLink } = req.body;
+            newContent = yield db_1.pool.query("INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *", [WardNo, HouseNo, Name, FileLink]);
+        }
+        else {
+            const { LicenseNo, SubDivNo, Year, Name, FileLink } = req.body;
+            newContent = yield db_1.pool.query("INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *", [LicenseNo, SubDivNo, Year, Name, FileLink]);
+        }
         res.json(newContent.rows[0]);
     }
     catch (err) {
         res.send({ error: `${err.message}` });
     }
 }));
-exports.router.get("/", isAuth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+//TODO router.get("/search", authMiddleware, async (req, res) => {
+exports.router.get("/search", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { type } = req.query;
+        var document;
+        if (type === "municipal_property_record") {
+            const { title, wardNo: wardno, subDivNo: subdivno } = req.query;
+            document = yield db_1.pool.query("SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'", [title, wardno, subdivno]);
+        }
+        else if (type === "birth_record") {
+            const { Month, Year } = req.query;
+            document = yield db_1.pool.query("SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'", [Month, Year]);
+        }
+        else if (type === "house_tax_record") {
+            const { WardNo, HouseNo, Name } = req.query;
+            document = yield db_1.pool.query("SELECT * from housetax_records WHERE wardno LIKE '%' || $1 || '%' AND houseno LIKE '%' || $2 || '%' AND name LIKE '%' || $3 || '%'", [WardNo, HouseNo, Name]);
+        }
+        else if (type === "construction_license") {
+            const { LicenseNo, SubDivNo, Year, Name } = req.query;
+            document = yield db_1.pool.query("SELECT * from constructionlicense_records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'", [LicenseNo, SubDivNo, Year, Name]);
+        }
+        if (document.rowCount === 0)
+            throw new Error("File not found");
+        res.send(document.rows);
+    }
+    catch (error) {
+        res.send({ error: `${error.message}` });
+    }
+}));
+exports.router.get("/", authMiddleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userRole = req.User.userRoles;
     const err = new errors_1.AccessDeniedError("You need to be an Admin");
     if (userRole != "admin")
         return res.status(err.statusCode).send({ error: err });
     res.json(req.User);
 }));
-exports.router.post("/search", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.router.get("/file-download", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { doc_id } = req.body;
-        console.log("doc_id" + doc_id);
-        const document = yield db_1.pool.query("SELECT * from document WHERE doc_id = $1", [doc_id]);
-        // console.log(document.rows[0]);
+        var auditContent;
+        const { doc_name, type, username } = req.query;
+        const Action = "Search";
+        const document = yield db_1.pool.query("SELECT * from housetax_records WHERE name = $1", [doc_name]);
         if (document.rowCount === 0)
             throw new Error("File not found");
-        res.download(document.rows[0].doc_location);
+        auditContent = yield db_1.pool.query("INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *", [type, document.rows[0].filelink, Action, username]);
+        const fileName = document.rows[0].filelink.substring(29);
+        const filePath = document.rows[0].filelink;
+        console.log(filePath);
+        res.download(filePath);
     }
     catch (error) {
         res.send({ error: `${error.message}` });

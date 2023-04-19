@@ -82,25 +82,25 @@ router.get("/search", async (req, res) => {
     if (type === "municipal_property_record") {
       const { title, wardNo: wardno, subDivNo: subdivno } = req.query;
       document = await pool.query(
-        "SELECT * from Municipal_Property_Records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'",
+        "SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'",
         [title, wardno, subdivno]
       );
     }else if (type === "birth_record") {
       const { Month, Year } = req.query;
       document = await pool.query(
-        "SELECT * from Birth_Records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'",
+        "SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'",
         [Month, Year]
       );
     } else if (type === "house_tax_record") {
       const { WardNo, HouseNo, Name } = req.query;
       document = await pool.query(
-        "SELECT * from Birth_Records WHERE wardno LIKE '%' || $1 || '%' AND houseno LIKE '%' || $2 || '%' AND name LIKE '%' || $3 || '%'",
+        "SELECT * from housetax_records WHERE wardno LIKE '%' || $1 || '%' AND houseno LIKE '%' || $2 || '%' AND name LIKE '%' || $3 || '%'",
         [WardNo, HouseNo, Name]
       );
     } else if (type === "construction_license") {
       const { LicenseNo, SubDivNo, Year, Name } = req.query;
       document = await pool.query(
-        "SELECT * from Construction_License_Records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'",
+        "SELECT * from constructionlicense_records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'",
         [LicenseNo, SubDivNo, Year, Name]
       );
     }

@@ -36,7 +36,7 @@ exports.router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0,
             return res.status(err.statusCode).send({ error: err });
         }
         const hashedpassword = yield (0, bcryptjs_1.hash)(password, 10);
-        const newUser = yield db_1.pool.query("INSERT INTO users (username,fullname,designation,password,roles) VALUES($1,$2,$3,$4,$5) RETURNING *", [username, fullname, designation, hashedpassword, roles]);
+        const newUser = yield db_1.pool.query("INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *", [username, fullname, designation, hashedpassword, roles]);
         res.json(newUser.rows[0]);
     }
     catch (err) {
@@ -63,6 +63,7 @@ exports.router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, fu
         }
         const accessToken = (0, tokens_1.createAccessToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
         const refreshToken = (0, tokens_1.createRefreshToken)(user.rows[0].user_id, user.rows[0].username, user.rows[0].roles);
+        const auditContent = yield db_1.pool.query("INSERT INTO user_auditlogs(username, loggedintime) VALUES ($1, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as loggedintime)) RETURNING *", [username]);
         const updatedUser = yield db_1.pool.query("UPDATE users SET refresh_token = $1 WHERE username = $2", [refreshToken, username]);
         (0, tokens_1.appendRefreshToken)(res, refreshToken);
         (0, tokens_1.appendAccessToken)(req, res, accessToken);
@@ -73,7 +74,7 @@ exports.router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, fu
 }));
 // 3.Logout
 exports.router.post("/logout", (req, res) => {
-    res.clearCookie("refreshtoken", { path: "/refresh_token" });
+    res.clearCookie("refreshtoken", { path: "/api/v1/user/refresh_token" });
     return res.send({
         message: "Logged Out",
     });
