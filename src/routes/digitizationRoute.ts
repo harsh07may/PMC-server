@@ -124,13 +124,32 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 router.get("/file-download", async (req, res) => {
   try {
     var auditContent;
-    const { doc_name, type, username } = req.query;
+    const { recordid, type, username } = req.query;
     const Action = "Search";
 
-    const document = await pool.query(
-      "SELECT * from housetax_records WHERE name = $1",
-      [doc_name]
-    );
+    var document;
+    if (type === "municipal_property_record") {
+      document = await pool.query(
+        "SELECT * from municipal_records WHERE recordid = $1",
+        [recordid]
+      );
+    } else if (type === "birth_record") {
+      document = await pool.query(
+        "SELECT * from birth_records WHERE recordid = $1",
+        [recordid]
+      );
+    } else if (type === "house_tax_record") {
+      document = await pool.query(
+        "SELECT * from housetax_records WHERE recordid = $1",
+        [recordid]
+      );
+    } else if (type === "construction_license") {
+      document = await pool.query(
+        "SELECT * from constructionlicense_records  WHERE recordid = $1",
+        [recordid]
+      );
+    }
+
     if (document.rowCount === 0) throw new Error("File not found");
 
     auditContent = await pool.query(
