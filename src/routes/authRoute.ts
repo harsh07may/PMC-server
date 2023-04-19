@@ -49,7 +49,6 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 //2.Login
-
 router.post("/login", async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
@@ -75,7 +74,7 @@ router.post("/login", async (req: Request, res: Response) => {
       user.rows[0].username,
       user.rows[0].roles
     );
-    const refreshToken = createRefreshToken(
+    const refreshtoken = createRefreshToken(
       user.rows[0].user_id,
       user.rows[0].username,
       user.rows[0].roles
@@ -88,11 +87,16 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const updatedUser = await pool.query(
       "UPDATE users SET refresh_token = $1 WHERE username = $2",
-      [refreshToken, username]
+      [refreshtoken, username]
     );
 
-    appendRefreshToken(res, refreshToken);
-    appendAccessToken(req, res, accessToken);
+    appendRefreshToken(res, refreshtoken);
+    res.send({
+      accessToken,
+      username: req.body.username,
+      role: user.rows[0].roles,
+    });
+    // appendAccessToken(req, res, accessToken);
   } catch (err: any) {
     res.send({ error: `${err.message}` });
   }
@@ -145,5 +149,9 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     [refreshtoken, payload.userId]
   );
   appendRefreshToken(res, refreshtoken);
-  return res.send({ accesstoken });
+  return res.send({
+    accesstoken,
+    username: req.body.username,
+    role: user.rows[0].roles,
+  });
 });

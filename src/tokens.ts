@@ -38,6 +38,7 @@ export const appendAccessToken = (
   res.send({
     accesstoken,
     username: req.body.username,
+    userrole: req.body.userrole,
   });
 };
 
@@ -45,6 +46,6 @@ export const appendRefreshToken = (res: Response, refreshtoken: string) => {
   res.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
     path: "/api/v1/user/refresh_token",
-    sameSite: 'none',
+    sameSite: "none",
   });
 };
