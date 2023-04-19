@@ -7,8 +7,8 @@ import * as fs from "fs";
 const upload = multer({ dest: "uploads/" });
 import { AccessDeniedError } from "../models/errors";
 
-router.post("/upload", upload.single("file"), (req, res) => {
-  console.log(req.file);
+router.post("/upload", authMiddleware, upload.single("file"), (req, res) => {
+
   if (req.file == null) {
     return res.status(400).json({ message: "Please choose one file" });
   } else {
@@ -31,12 +31,12 @@ router.post("/upload", upload.single("file"), (req, res) => {
 });
 
 // 4. Protected Routes
-router.post("/insert", async (req: Request, res: Response) => {
+router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
   try {
     var newContent;
     var auditContent;
     const { type } = req.body;
-    const { UserName } = req.body;
+    const UserName = req.User.userName;
     const Action = "Upload";
     if (type == "municipal_property_record") {
       const { WardNo, SubDivNo, Title, FileLink } = req.body;
@@ -121,11 +121,13 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
   res.json(req.User);
 });
 
-router.get("/file-download", async (req, res) => {
+router.get("/file-download", authMiddleware, async (req, res) => {
   try {
     var auditContent;
-    const { recordid, type, username } = req.query;
-    const Action = "Search";
+    const username = req.User.userName;
+    const { recordid, type } = req.query;
+    console.log(req.query);
+    const Action = "Download";
 
     var document;
     if (type === "municipal_property_record") {
@@ -151,7 +153,7 @@ router.get("/file-download", async (req, res) => {
     }
 
     if (document.rowCount === 0) throw new Error("File not found");
-
+    console.log(document.rowCount);
     auditContent = await pool.query(
       "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
       [type, document.rows[0].filelink, Action, username]
