@@ -7,42 +7,84 @@ import * as fs from "fs";
 const upload = multer({ dest: "uploads/" });
 import { AccessDeniedError } from "../models/errors";
 
-router.post("/upload", authMiddleware, upload.single("file"), (req, res) => {
-  const userRole = req.User.userRoles;
-  const err = new AccessDeniedError("You need to be an Admin");
-  if (userRole != "admin" || userRole != "editor") {
-    return res.status(err.statusCode).send({ error: err });
+router.post(
+  "/upload",
+  authMiddleware,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const userRole = req.User.userRoles;
+      const err = new AccessDeniedError("You need to be an Admin");
+
+      if (userRole != "admin" && userRole != "editor") {
+        return res.status(err.statusCode).send({ error: err });
+      }
+      if (req.file == null) {
+        return res.status(400).json({ message: "Please choose one file" });
+      } else {
+        const file = req.file;
+        const fileStream = fs.createReadStream(file.path);
+        const date = new Date().toISOString().replace(/:/g, "-");
+        const fileName = `${date}-${file.originalname}`;
+        const FileLink = `D:/PMC Document Digitization/${fileName}`;
+
+        const wStream = fs.createWriteStream(FileLink);
+
+        fileStream.on("data", (data) => {
+          wStream.write(data);
+        });
+
+        var newContent;
+        const { type } = req.body;
+
+        const UserName = req.User.userName;
+        const Action = "Upload";
+        console.log(req.body);
+        if (type == "municipal_property_record") {
+          const { wardNo, subDivNo, title } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [wardNo, subDivNo, title, FileLink]
+          );
+        } else if (type == "birth_record") {
+          const { Month, Year } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [Month, Year, FileLink]
+          );
+        } else if (type === "house_tax_record") {
+          const { wardNo, houseNo, name } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [wardNo, houseNo, name, FileLink]
+          );
+        } else {
+          const { licenseNo, subDivNo, year, name } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [licenseNo, subDivNo, year, name, FileLink]
+          );
+        }
+        const auditContent = await pool.query(
+          "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+          [type, FileLink, Action, UserName]
+        );
+        res.json(newContent.rows[0]);
+      }
+    } catch (error: any) {
+      res.send({ error: `${error.message}` });
+    }
   }
-
-  if (req.file == null) {
-    return res.status(400).json({ message: "Please choose one file" });
-  } else {
-    const file = req.file;
-    const fileStream = fs.createReadStream(file.path);
-    const date = new Date().toISOString().replace(/:/g, "-");
-    const fileName = `${date}-${file.originalname}`;
-    const path = `D:/PMC Document Digitization/${fileName}`;
-
-    // const path = `D:/PMC Document Digitization/${file.originalname}`;
-    console.log(path);
-    const wStream = fs.createWriteStream(path);
-
-    fileStream.on("data", (data) => {
-      wStream.write(data);
-    });
-
-    res.send({ fileLink: `${path}` });
-  }
-});
+);
 
 // 4. Protected Routes
 router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userRole = req.User.userRoles;
-    const err = new AccessDeniedError("You need to be an Admin");
-    if (userRole != "admin" || userRole != "editor") {
-      return res.status(err.statusCode).send({ error: err });
-    }
+    // const userRole = req.User.userRoles;
+    // const err = new AccessDeniedError("You need to be an Admin");
+    // if (userRole != "admin" && userRole != "editor") {
+    //   return res.status(err.statusCode).send({ error: err });
+    // }
 
     var newContent;
     var auditContent;

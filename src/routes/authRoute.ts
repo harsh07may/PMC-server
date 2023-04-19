@@ -23,7 +23,7 @@ router.use(cookieParser());
 router.post("/register", async (req: Request, res: Response) => {
   const userRole = req.User.userRoles;
   const err = new AccessDeniedError("You need to be an Admin");
-  if (userRole != "admin" || userRole != "editor") {
+  if (userRole != "admin") {
     return res.status(err.statusCode).send({ error: err });
   }
   const { username, fullname, designation, password, roles } = req.body;
@@ -69,7 +69,7 @@ router.post("/login", async (req: Request, res: Response) => {
       return res.status(err.statusCode).send({ error: err });
     }
 
-    const accessToken = createAccessToken(
+    const accesstoken = createAccessToken(
       user.rows[0].user_id,
       user.rows[0].username,
       user.rows[0].roles
@@ -92,7 +92,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
     appendRefreshToken(res, refreshtoken);
     res.send({
-      accessToken,
+      accesstoken,
       username: req.body.username,
       role: user.rows[0].roles,
     });

@@ -2,16 +2,8 @@ import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { pool } from "./utils/db";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { getEnv } from "./utils/constants";
 import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
-import {
-  createAccessToken,
-  createRefreshToken,
-  appendAccessToken,
-  appendRefreshToken,
-} from "./tokens";
 
 import multer from "multer";
 
