@@ -77,25 +77,33 @@ router.post("/insert", async (req: Request, res: Response) => {
 //TODO router.get("/search", authMiddleware, async (req, res) => {
 router.get("/search", async (req, res) => {
   try {
-    const { name, type } = req.query;
-    console.log({ name: name, type: type });
+    const { type } = req.query;
     var document;
     if (type === "municipal_property_record") {
+      const { title, wardNo: wardno, subDivNo: subdivno } = req.query;
       document = await pool.query(
-        "SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%'",
-        [name]
+        "SELECT * from Municipal_Property_Records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'",
+        [title, wardno, subdivno]
       );
-    } else if (type === "house_tax") {
+    }else if (type === "birth_record") {
+      const { Month, Year } = req.query;
       document = await pool.query(
-        "SELECT * from house_tax WHERE doc_type = $1 or doc_name = $2",
-        [name]
+        "SELECT * from Birth_Records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'",
+        [Month, Year]
+      );
+    } else if (type === "house_tax_record") {
+      const { WardNo, HouseNo, Name } = req.query;
+      document = await pool.query(
+        "SELECT * from Birth_Records WHERE wardno LIKE '%' || $1 || '%' AND houseno LIKE '%' || $2 || '%' AND name LIKE '%' || $3 || '%'",
+        [WardNo, HouseNo, Name]
+      );
+    } else if (type === "construction_license") {
+      const { LicenseNo, SubDivNo, Year, Name } = req.query;
+      document = await pool.query(
+        "SELECT * from Construction_License_Records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'",
+        [LicenseNo, SubDivNo, Year, Name]
       );
     }
-
-    // document = await pool.query(
-    //   "SELECT * from document WHERE doc_type = $1 or doc_name = $2",
-    //   [type, name]
-    // );
 
     if (document.rowCount === 0) throw new Error("File not found");
     res.send(document.rows);
