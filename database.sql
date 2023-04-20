@@ -55,6 +55,15 @@ CREATE TABLE searchadd_auditlogs(
 	performedBy TEXT NOT NULL
 );
 
+CREATE TABLE admin_auditlogs(
+	logId SERIAL PRIMARY KEY,
+	timestamp TEXT NOT NULL,
+	Action TEXT NOT NULL,
+	description TEXT NOT NULL,
+	performedBy TEXT NOT NULL
+);
+
+
 CREATE TABLE user_auditlogs(
     logId SERIAL PRIMARY KEY,
     username TEXT NOT NULL,

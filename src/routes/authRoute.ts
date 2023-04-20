@@ -20,33 +20,44 @@ import { authMiddleware } from "../authMiddleware";
 router.use(cookieParser());
 
 //1.Register an user
-router.post("/register", async (req: Request, res: Response) => {
-  const userRole = req.User.userRoles;
-  const err = new AccessDeniedError("You need to be an Admin");
-  if (userRole != "admin") {
-    return res.status(err.statusCode).send({ error: err });
-  }
-  const { username, fullname, designation, password, roles } = req.body;
-  try {
-    const user = await pool.query("SELECT * from users WHERE username = $1", [
-      username,
-    ]);
-    if (user.rows.length > 0) {
-      // throw new Error("User already exists");
-      const err = new ExistingUserError("User already exists");
+router.post(
+  "/register",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const userRole = req.User.userRoles;
+    const performedBy = req.User.userName;
+    const err = new AccessDeniedError("You need to be an Admin");
+    if (userRole != "admin") {
       return res.status(err.statusCode).send({ error: err });
     }
-    const hashedpassword = await hash(password, 10);
+    const { username, fullname, designation, password, roles } = req.body;
+    try {
+      const user = await pool.query("SELECT * from users WHERE username = $1", [
+        username,
+      ]);
+      if (user.rows.length > 0) {
+        // throw new Error("User already exists");
+        const err = new ExistingUserError("User already exists");
+        return res.status(err.statusCode).send({ error: err });
+      }
+      const hashedpassword = await hash(password, 10);
 
-    const newUser = await pool.query(
-      "INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-      [username, fullname, designation, hashedpassword, roles]
-    );
-    res.json(newUser.rows[0]);
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
+      const newUser = await pool.query(
+        "INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+        [username, fullname, designation, hashedpassword, roles]
+      );
+      const Action = "Register";
+      const description = `Registered User %${username}%`;
+      const auditContent = await pool.query(
+        "INSERT INTO admin_auditlogs(timestamp,Action,description,performedBy) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
+        [Action, description, performedBy]
+      );
+      res.json(newUser.rows[0]);
+    } catch (err: any) {
+      res.send({ error: `${err.message}` });
+    }
   }
-});
+);
 
 //2.Login
 router.post("/login", async (req: Request, res: Response) => {
@@ -80,9 +91,15 @@ router.post("/login", async (req: Request, res: Response) => {
       user.rows[0].roles
     );
 
+    // const auditContent = await pool.query(
+    //   "INSERT INTO user_auditlogs(username, loggedintime) VALUES ($1, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as loggedintime)) RETURNING *",
+    //   [username]
+    // );
+    const Action = "login";
+    const description = "login";
     const auditContent = await pool.query(
-      "INSERT INTO user_auditlogs(username, loggedintime) VALUES ($1, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as loggedintime)) RETURNING *",
-      [username]
+      "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
+      [Action, description, username]
     );
 
     const updatedUser = await pool.query(
@@ -98,6 +115,7 @@ router.post("/login", async (req: Request, res: Response) => {
     });
     // appendAccessToken(req, res, accessToken);
   } catch (err: any) {
+    console.log(err.message);
     res.send({ error: `${err.message}` });
   }
 });
@@ -174,7 +192,7 @@ router.get(
         return res.status(404).send("Records not found");
       }
       const document = await pool.query(
-        "SELECT a.*, u.fullname FROM user_auditlogs a INNER JOIN users u ON a.username = u.username ORDER BY logid DESC LIMIT $1 OFFSET $2",
+        "SELECT a.*, u.fullname FROM admin_auditlogs a INNER JOIN users u ON a.performedBy = u.username ORDER BY logid DESC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 

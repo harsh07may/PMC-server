@@ -128,7 +128,7 @@ router.get("/search", authMiddleware, async (req, res) => {
 });
 
 router.get(
-  "/get-search-audit",
+  "/get-digitization-audit",
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
