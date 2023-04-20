@@ -5,8 +5,6 @@ import { pool } from "./utils/db";
 import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
 
-import multer from "multer";
-
 const app = express();
 
 //MIDDLEWARE

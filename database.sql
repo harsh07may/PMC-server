@@ -46,7 +46,7 @@ CREATE TABLE ConstructionLicense_Records(
 	timestamp TEXT NOT NULL
 );
 
-CREATE TABLE SearchAdd_AuditLogs(
+CREATE TABLE searchadd_auditlogs(
 	logId SERIAL PRIMARY KEY,
 	timestamp TEXT NOT NULL,
 	documentType TEXT NOT NULL,

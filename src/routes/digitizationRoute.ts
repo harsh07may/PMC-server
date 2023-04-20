@@ -29,22 +29,24 @@ router.post(
         const FileLink = `D:/PMC Document Digitization/${fileName}`;
 
         const wStream = fs.createWriteStream(FileLink);
-
         fileStream.on("data", (data) => {
           wStream.write(data);
         });
 
         var newContent;
+        var auditContent;
         const { type } = req.body;
-
         const UserName = req.User.userName;
         const Action = "Upload";
-        console.log(req.body);
         if (type == "municipal_property_record") {
           const { wardNo, subDivNo, title } = req.body;
           newContent = await pool.query(
             "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [wardNo, subDivNo, title, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, title, Action, UserName]
           );
         } else if (type == "birth_record") {
           const { Month, Year } = req.body;
@@ -52,11 +54,20 @@ router.post(
             "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [Month, Year, FileLink]
           );
+
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, `${Month + "/" + Year}`, Action, UserName]
+          );
         } else if (type === "house_tax_record") {
           const { wardNo, houseNo, name } = req.body;
           newContent = await pool.query(
             "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [wardNo, houseNo, name, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, name, Action, UserName]
           );
         } else {
           const { licenseNo, subDivNo, year, name } = req.body;
@@ -64,11 +75,12 @@ router.post(
             "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [licenseNo, subDivNo, year, name, FileLink]
           );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, name, Action, UserName]
+          );
         }
-        const auditContent = await pool.query(
-          "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-          [type, FileLink, Action, UserName]
-        );
+
         res.json(newContent.rows[0]);
       }
     } catch (error: any) {
@@ -77,55 +89,6 @@ router.post(
   }
 );
 
-// 4. Protected Routes
-router.post("/insert", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    // const userRole = req.User.userRoles;
-    // const err = new AccessDeniedError("You need to be an Admin");
-    // if (userRole != "admin" && userRole != "editor") {
-    //   return res.status(err.statusCode).send({ error: err });
-    // }
-
-    var newContent;
-    var auditContent;
-    const { type } = req.body;
-    const UserName = req.User.userName;
-    const Action = "Upload";
-    if (type == "municipal_property_record") {
-      const { WardNo, SubDivNo, Title, FileLink } = req.body;
-      newContent = await pool.query(
-        "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-        [WardNo, SubDivNo, Title, FileLink]
-      );
-
-      auditContent = await pool.query(
-        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-        [type, FileLink, Action, UserName]
-      );
-    } else if (type == "birth_record") {
-      const { Month, Year, FileLink } = req.body;
-      newContent = await pool.query(
-        "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-        [Month, Year, FileLink]
-      );
-    } else if (type === "house_tax_record") {
-      const { WardNo, HouseNo, Name, FileLink } = req.body;
-      newContent = await pool.query(
-        "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-        [WardNo, HouseNo, Name, FileLink]
-      );
-    } else {
-      const { LicenseNo, SubDivNo, Year, Name, FileLink } = req.body;
-      newContent = await pool.query(
-        "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-        [LicenseNo, SubDivNo, Year, Name, FileLink]
-      );
-    }
-    res.json(newContent.rows[0]);
-  } catch (err: any) {
-    res.send({ error: `${err.message}` });
-  }
-});
 //TODO router.get("/search", authMiddleware, async (req, res) => {
 router.get("/search", async (req, res) => {
   try {
@@ -164,15 +127,29 @@ router.get("/search", async (req, res) => {
   }
 });
 
-router.get("/", authMiddleware, async (req: Request, res: Response) => {
-  const userRole = req.User.userRoles;
+router.get(
+  "/get-search-audit",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const userRole = req.User.userRoles;
+      const err = new AccessDeniedError("You need to be an Admin");
+      if (userRole != "admin") {
+        return res.status(err.statusCode).send({ error: err });
+      }
 
-  const err = new AccessDeniedError("You need to be an Admin");
-  if (userRole != "admin")
-    return res.status(err.statusCode).send({ error: err });
+      const page = Number(req.query.page) || 1;
+      const limit = 10;
+      const offset = (page - 1) * limit;
+      const document = await pool.query(
+        `SELECT * FROM searchadd_auditlogs ORDER BY id DESC LIMIT ${limit} OFFSET ${offset}`
+      );
 
-  res.json(req.User);
-});
+      if (document.rowCount === 0) throw new Error("Audit not found");
+      res.send(document.rows);
+    } catch (error) {}
+  }
+);
 
 router.get("/file-download", authMiddleware, async (req, res) => {
   try {
