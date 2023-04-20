@@ -90,7 +90,7 @@ router.post(
 );
 
 //TODO router.get("/search", authMiddleware, async (req, res) => {
-router.get("/search", async (req, res) => {
+router.get("/search", authMiddleware, async (req, res) => {
   try {
     const { type } = req.query;
     var document;
@@ -129,14 +129,14 @@ router.get("/search", async (req, res) => {
 
 router.get(
   "/get-search-audit",
-
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      // const userRole = req.User.userRoles;
-      // const err = new AccessDeniedError("You need to be an Admin");
-      // if (userRole != "admin") {
-      //   return res.status(err.statusCode).send({ error: err });
-      // }
+      const userRole = req.User.userRoles;
+      const err = new AccessDeniedError("You need to be an Admin");
+      if (userRole != "admin") {
+        return res.status(err.statusCode).send({ error: err });
+      }
       const page = Number(req.query.page) || 1;
       const limit = 10;
       const offset = (page - 1) * limit;
@@ -156,7 +156,9 @@ router.get(
         rows: document.rows,
         total: count.rows[0].count,
       });
-    } catch (error) {}
+    } catch (error: any) {
+      res.send({ error: `${error.message}` });
+    }
   }
 );
 
