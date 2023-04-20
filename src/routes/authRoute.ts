@@ -1,4 +1,4 @@
-import { Express, Router, Response, Request } from "express";
+import { Router, Response, Request } from "express";
 import cookieParser from "cookie-parser";
 export const router = Router();
 import { hash, compare } from "bcryptjs";
@@ -46,13 +46,13 @@ router.post(
         "INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
         [username, fullname, designation, hashedpassword, roles]
       );
-      const Action = "Register";
-      const description = `Registered User %${username}%`;
+      const Action = "register";
+      const description = `Registered User %${username}`;
       const auditContent = await pool.query(
         "INSERT INTO admin_auditlogs(timestamp,Action,description,performedBy) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
         [Action, description, performedBy]
       );
-      res.json(newUser.rows[0]);
+      res.send("Registered User");
     } catch (err: any) {
       res.send({ error: `${err.message}` });
     }
@@ -173,36 +173,3 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     role: user.rows[0].roles,
   });
 });
-
-router.get(
-  "/get-user-audit",
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
-      }
-      const page = Number(req.query.page) || 1;
-      const limit = 10;
-      const offset = (page - 1) * limit;
-      const count = await pool.query("SELECT count(*) from user_auditlogs");
-      if (offset > count.rows[0].count) {
-        return res.status(404).send("Records not found");
-      }
-      const document = await pool.query(
-        "SELECT a.*, u.fullname FROM admin_auditlogs a INNER JOIN users u ON a.performedBy = u.username ORDER BY logid DESC LIMIT $1 OFFSET $2",
-        [limit, offset]
-      );
-
-      if (document.rowCount === 0) throw new Error("Audit not found");
-      res.json({
-        rows: document.rows,
-        total: count.rows[0].count,
-      });
-    } catch (error: any) {
-      res.send({ error: `${error.message}` });
-    }
-  }
-);

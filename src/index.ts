@@ -4,6 +4,7 @@ import cors from "cors";
 import { pool } from "./utils/db";
 import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
+import { router as AdminRoute } from "./routes/adminRoute";
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.get("/getall", async (req: Request, res: Response) => {
 
 app.use("/api/v1/user", AuthRoute);
 app.use("/api/v1/digitization", DigitizationRoute);
+app.use("/api/v1/admin", AdminRoute);
 
 // app.use("/api/v1/user", LeaveRoute);
 // app.use("/api/v1/user", TrackingRoute);

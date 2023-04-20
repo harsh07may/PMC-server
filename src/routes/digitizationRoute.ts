@@ -127,41 +127,6 @@ router.get("/search", authMiddleware, async (req, res) => {
   }
 });
 
-router.get(
-  "/get-digitization-audit",
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
-      }
-      const page = Number(req.query.page) || 1;
-      const limit = 10;
-      const offset = (page - 1) * limit;
-      const count = await pool.query(
-        "SELECT count(*) from searchadd_auditlogs"
-      );
-      if (offset > count.rows[0].count) {
-        return res.status(404).send("Records not found");
-      }
-      const document = await pool.query(
-        "SELECT a.*, u.fullname FROM searchadd_auditlogs a INNER JOIN users u ON a.performedby = u.username ORDER BY logid DESC LIMIT $1 OFFSET $2",
-        [limit, offset]
-      );
-
-      if (document.rowCount === 0) throw new Error("Audit not found");
-      res.json({
-        rows: document.rows,
-        total: count.rows[0].count,
-      });
-    } catch (error: any) {
-      res.send({ error: `${error.message}` });
-    }
-  }
-);
-
 router.get("/file-download", authMiddleware, async (req, res) => {
   try {
     var auditContent;
