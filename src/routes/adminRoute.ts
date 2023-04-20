@@ -37,7 +37,9 @@ router.post(
         "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
         [Action, description, performedBy]
       );
-      console.log(updatedUser.rows);
+      return res.send({
+        message: "User Modified",
+      });
     } catch (err: any) {
       res.send({ error: `${err.message}` });
     }
@@ -62,7 +64,7 @@ router.get(
         return res.status(404).send("Records not found");
       }
       const users = await pool.query(
-        "SELECT user_id,username,fullname,designation,roles,timestamp FROM user ORDER BY roles ASC LIMIT $1 OFFSET $2",
+        "SELECT user_id,username,fullname,designation,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 
