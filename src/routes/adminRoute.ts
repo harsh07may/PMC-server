@@ -80,6 +80,32 @@ router.get(
 );
 
 router.get(
+  "/get-user",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    // console.log(req.query);
+    try {
+      const userRole = req.User.userRoles;
+      const err = new AccessDeniedError("You need to be an Admin");
+      if (userRole != "admin") {
+        return res.status(err.statusCode).send({ error: err });
+      }
+      const username = req.query.username;
+      const user = await pool.query("SELECT * from users WHERE username = $1", [
+        username,
+      ]);
+
+      if (user.rowCount === 0) throw new Error("User not found");
+      res.json({
+        rows: user.rows,
+      });
+    } catch (error: any) {
+      return res.status(404).send({ error: `${error.message}` });
+    }
+  }
+);
+
+router.get(
   "/get-user-audit",
   authMiddleware,
   async (req: Request, res: Response) => {

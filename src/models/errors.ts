@@ -33,3 +33,9 @@ export class ExistingUserError extends GenericError {
   }
 }
 
+export class FileNotFoundError extends GenericError {
+  constructor(message: any) {
+    super(message, "FileNotFoundError", 404);
+  }
+}
+

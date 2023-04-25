@@ -5,7 +5,7 @@ import { pool } from "../utils/db";
 import multer = require("multer");
 import * as fs from "fs";
 const upload = multer({ dest: "uploads/" });
-import { AccessDeniedError } from "../models/errors";
+import { AccessDeniedError, FileNotFoundError } from "../models/errors";
 
 router.post(
   "/upload",
@@ -89,7 +89,6 @@ router.post(
   }
 );
 
-//TODO router.get("/search", authMiddleware, async (req, res) => {
 router.get("/search", authMiddleware, async (req, res) => {
   try {
     const { type } = req.query;
@@ -103,7 +102,7 @@ router.get("/search", authMiddleware, async (req, res) => {
     } else if (type === "birth_record") {
       const { Month, Year } = req.query;
       document = await pool.query(
-        "SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND wardno LIKE '%'",
+        "SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND year LIKE '%' || $2 || '%' ",
         [Month, Year]
       );
     } else if (type === "house_tax_record") {
@@ -113,7 +112,8 @@ router.get("/search", authMiddleware, async (req, res) => {
         [WardNo, HouseNo, Name]
       );
     } else if (type === "construction_license") {
-      const { LicenseNo, SubDivNo, Year, Name } = req.query;
+      const { licenseNo: LicenseNo, subDivNo: SubDivNo, year: Year, title: Name } = req.query;
+      // console.log(req.query);
       document = await pool.query(
         "SELECT * from constructionlicense_records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'",
         [LicenseNo, SubDivNo, Year, Name]
@@ -123,7 +123,8 @@ router.get("/search", authMiddleware, async (req, res) => {
     if (document.rowCount === 0) throw new Error("File not found");
     res.send(document.rows);
   } catch (error: any) {
-    res.send({ error: `${error.message}` });
+    res.status(404).send(`${error.message}`);
+    // res.status(error.statusCode).send({ error: error });
   }
 });
 
@@ -132,7 +133,7 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     var auditContent;
     const username = req.User.userName;
     const { recordid, type } = req.query;
-    console.log(req.query);
+    // console.log(req.query);
     const Action = "Download";
 
     var document;
@@ -159,7 +160,7 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     }
 
     if (document.rowCount === 0) throw new Error("File not found");
-    console.log(document.rowCount);
+    // console.log(document.rowCount);
     auditContent = await pool.query(
       "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
       [type, document.rows[0].filelink, Action, username]
@@ -167,7 +168,7 @@ router.get("/file-download", authMiddleware, async (req, res) => {
 
     const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;
-    console.log(filePath);
+    // console.log(filePath);
     res.download(filePath);
   } catch (error: any) {
     res.send({ error: `${error.message}` });
