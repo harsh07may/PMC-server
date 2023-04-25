@@ -46,35 +46,6 @@ router.post(
   }
 );
 
-router.get;
-
-router.get(
-  "/get-user-by-username",
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
-      }
-      const { username } = req.query;
-
-      const users = await pool.query(
-        "SELECT user_id,username,fullname,designation,roles,timestamp FROM user WHERE username = $1",
-        [username]
-      );
-
-      if (users.rowCount === 0) return res.status(404).send("User not found");
-      res.json({
-        rows: users.rows,
-      });
-    } catch (error: any) {
-      res.send({ error: `${error.message}` });
-    }
-  }
-);
-
 router.get(
   "/get-users",
   authMiddleware,
