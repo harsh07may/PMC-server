@@ -41,7 +41,7 @@ router.post(
         message: "User Modified",
       });
     } catch (err: any) {
-      res.send({ error: `${err.message}` });
+      res.status(400).send({ error: `${err.message}` });
     }
   }
 );
