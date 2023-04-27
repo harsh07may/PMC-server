@@ -70,6 +70,21 @@ CREATE TABLE user_auditlogs(
     loggedintime TEXT NOT NULL
 );
 
+CREATE TYPE leave_application_status AS ENUM ('pending', 'rejected', 'manager-approved', 'hod-approved');
+CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
+
+CREATE TABLE leave_applications(
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(user_id),
+  manager_id INT NOT NULL REFERENCES users(user_id),
+  hod_id INT NOT NULL REFERENCES users(user_id),
+  status leave_application_status NOT null DEFAULT 'pending', 
+  type leave_application_type NOT NULL,
+  ctime DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL
+)
+
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
 
