@@ -2,44 +2,70 @@ import { Router, Response, Request } from "express";
 export const router = Router();
 import { authMiddleware } from "../authMiddleware";
 import { pool } from "../utils/db";
-import { AccessDeniedError } from "../models/errors";
-import { hash, compare } from "bcryptjs";
+import { AccessDeniedError, ExistingUserError } from "../models/errors";
+import {
+  fetchUser,
+  addAuditLog,
+  addNewUserToDB,
+  updateUser,
+  checkPermissions,
+  ROLES,
+} from "../services/admnService";
+
+//ENDPOINTS
+router.post(
+  "/register",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      if (!checkPermissions(req, [ROLES.ADMIN])) {
+        const error = new AccessDeniedError("Insufficient Permissions");
+        return res.status(error.statusCode).send({ error });
+      }
+
+      const { username } = req.body; //New User
+      const { userName } = req.User; //Performed by
+
+      const user = await fetchUser(username);
+      if (user.rows.length > 0) {
+        const err = new ExistingUserError("User already exists");
+        return res.status(err.statusCode).send({ error: err });
+      }
+
+      await addNewUserToDB(req.body);
+
+      await addAuditLog("register", `Registered User %${username}`, userName);
+
+      res.status(201).send(`Registered ${username}`);
+    } catch (err: any) {
+      res.send({ error: `${err.message}` });
+    }
+  }
+);
 
 router.post(
   "/update-user",
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const userRole = req.User.userRoles;
-      const performedBy = req.User.userName;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
+      if (!checkPermissions(req, [ROLES.ADMIN])) {
+        const error = new AccessDeniedError("Insufficient Permissions");
+        return res.status(error.statusCode).send({ error });
       }
-      const { username, fullname, designation, password, roles } = req.body;
-      const hashedpassword = await hash(password, 10);
 
-      const user = await pool.query("SELECT * from users WHERE username = $1", [
-        username,
-      ]);
+      const { username } = req.body; //New User
+      const { userName } = req.User; //Performed by
+
+      const user = await fetchUser(username);
       if (user.rows.length === 0) {
-        return res.status(404).send("User not found");
+        return res.status(404).send("User not Found");
       }
 
-      const Action = "update";
-      const description = `Updated user %${username}`;
+      await updateUser(req.body);
 
-      const updatedUser = await pool.query(
-        "UPDATE users SET fullname = $1,designation=$2,password=$3,roles=$4 WHERE username = $5",
-        [fullname, designation, hashedpassword, roles, username]
-      );
-      const auditContent = await pool.query(
-        "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
-        [Action, description, performedBy]
-      );
-      return res.send({
-        message: "User Modified",
-      });
+      await addAuditLog("update", `Updated user %${username}`, userName);
+
+      return res.send(`Updated ${username}`);
     } catch (err: any) {
       res.send({ error: `${err.message}` });
     }
@@ -51,10 +77,9 @@ router.get(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
+      if (!checkPermissions(req, [ROLES.ADMIN])) {
+        const error = new AccessDeniedError("Insufficient Permissions");
+        return res.status(error.statusCode).send({ error });
       }
       const page = Number(req.query.page) || 1;
       const limit = 10;
@@ -79,31 +104,28 @@ router.get(
   }
 );
 
-router.get(
-  "/get-user",
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    // console.log(req.query);
-    try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
-        return res.status(err.statusCode).send({ error: err });
-      }
-      const username = req.query.username;
-      const user = await pool.query("SELECT * from users WHERE username = $1", [
-        username,
-      ]);
-
-      if (user.rowCount === 0) throw new Error("User not found");
-      res.json({
-        rows: user.rows,
-      });
-    } catch (error: any) {
-      return res.status(404).send({ error: `${error.message}` });
+router.get("/get-user", authMiddleware, async (req: Request, res: Response) => {
+  // console.log(req.query);
+  try {
+    if (!checkPermissions(req, [ROLES.ADMIN])) {
+      const error = new AccessDeniedError("Insufficient Permissions");
+      return res.status(error.statusCode).send({ error });
     }
+
+    const { username } = req.query;
+    const user = await fetchUser(username?.toString() ?? "");
+    if (user.rows.length === 0) {
+      return res.status(404).send("User not Found");
+    }
+
+    if (user.rowCount === 0) return res.status(404).send("User not found");
+    res.json({
+      rows: user.rows,
+    });
+  } catch (error: any) {
+    return res.status(404).send({ error: `${error.message}` });
   }
-);
+});
 
 router.get(
   "/get-user-audit",

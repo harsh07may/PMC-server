@@ -1,5 +1,5 @@
 import { sign } from "jsonwebtoken";
-import express, { Request, Response } from "express";
+import { Request, Response } from "express";
 import { getEnv } from "./utils/constants";
 
 export const createAccessToken = (

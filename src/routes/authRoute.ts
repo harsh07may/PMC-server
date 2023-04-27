@@ -1,7 +1,9 @@
 import { Router, Response, Request } from "express";
 import cookieParser from "cookie-parser";
 export const router = Router();
-import { hash, compare } from "bcryptjs";
+
+//JWT, ENV, PW-HASH
+import { compare } from "bcryptjs";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { getEnv } from "../utils/constants";
 import {
@@ -10,54 +12,12 @@ import {
   appendRefreshToken,
 } from "../tokens";
 import { pool } from "../utils/db";
-import {
-  FailedLoginError,
-  ExistingUserError,
-  AccessDeniedError,
-} from "../models/errors";
-import { authMiddleware } from "../authMiddleware";
 
+//MODELS
+import { FailedLoginError } from "../models/errors";
+
+//MIDDLEWARE
 router.use(cookieParser());
-
-//1.Register an user
-router.post(
-  "/register",
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    const userRole = req.User.userRoles;
-    const performedBy = req.User.userName;
-    const err = new AccessDeniedError("You need to be an Admin");
-    if (userRole != "admin") {
-      return res.status(err.statusCode).send({ error: err });
-    }
-    const { username, fullname, designation, password, roles } = req.body;
-    try {
-      const user = await pool.query("SELECT * from users WHERE username = $1", [
-        username,
-      ]);
-      if (user.rows.length > 0) {
-        // throw new Error("User already exists");
-        const err = new ExistingUserError("User already exists");
-        return res.status(err.statusCode).send({ error: err });
-      }
-      const hashedpassword = await hash(password, 10);
-
-      const newUser = await pool.query(
-        "INSERT INTO users (username,fullname,designation,password,roles,timestamp) VALUES($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-        [username, fullname, designation, hashedpassword, roles]
-      );
-      const Action = "register";
-      const description = `Registered User %${username}`;
-      const auditContent = await pool.query(
-        "INSERT INTO admin_auditlogs(timestamp,Action,description,performedBy) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
-        [Action, description, performedBy]
-      );
-      res.send("Registered User");
-    } catch (err: any) {
-      res.send({ error: `${err.message}` });
-    }
-  }
-);
 
 //2.Login
 router.post("/login", async (req: Request, res: Response) => {
