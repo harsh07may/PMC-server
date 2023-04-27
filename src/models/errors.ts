@@ -39,3 +39,14 @@ export class FileNotFoundError extends GenericError {
   }
 }
 
+export class ValidationError extends GenericError {
+  constructor(message: string) {
+    super(message, "ValidationError", 403);
+  }
+}
+
+export class ResourceNotFoundError extends GenericError {
+  constructor(message: string) {
+    super(message, "ResourceNotFoundError", 404);
+  }
+}
