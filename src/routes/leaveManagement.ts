@@ -26,7 +26,7 @@ const LeaveApplicationStatus = z.enum([
   "hod-approved",
 ]);
 
-const LeaveApplicationType = z.enum(["medical", "causal"]);
+const LeaveApplicationType = z.enum(["medical", "casual"]);
 
 const LeaveApplication = z.object({
   id: z.number().int().gte(1),
@@ -283,7 +283,7 @@ void (async () => {
     manager_id: 1,
     hod_id: 1,
     status: LeaveApplicationStatus.Enum["manager-approved"],
-    type: "causal",
+    type: "casual",
     ctime: new Date(),
     start_date: new Date(),
     end_date: new Date(),

@@ -10,7 +10,7 @@ export enum ROLES {
 
 //SERVICES
 export async function fetchUser(username: string) {
-  return pool.query("SELECT * from users WHERE username = $1", [username]);
+  return pool.query("SELECT user_id,username,fullname,designation,roles FROM users WHERE username = $1", [username]);
 }
 
 export async function addNewUserToDB({

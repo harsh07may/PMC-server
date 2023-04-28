@@ -5,7 +5,7 @@ import { pool } from "../utils/db";
 import multer = require("multer");
 import * as fs from "fs";
 const upload = multer({ dest: "uploads/" });
-import { AccessDeniedError, FileNotFoundError } from "../models/errors";
+import { AccessDeniedError, ResourceNotFoundError } from "../models/errors";
 
 router.post(
   "/upload",
