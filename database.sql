@@ -70,6 +70,24 @@ CREATE TABLE user_auditlogs(
     loggedintime TEXT NOT NULL
 );
 
+CREATE TABLE TradeLicense_Records(
+    recordId SERIAL PRIMARY KEY,
+	licenseNo TEXT NOT NULL,
+    locality TEXT NOT NULL,
+	title TEXT NOT NULL,
+	fileLink TEXT NOT NULL,
+    timestamp TEXT NOT NULL 
+);
+
+CREATE TABLE Death_Records(
+    recordId SERIAL PRIMARY KEY,
+    month TEXT NOT NULL,
+    year TEXT NOT NULL,
+	title TEXT NOT NULL,
+    fileLink TEXT NOT NULL,
+    timestamp TEXT NOT NULL
+);
+
 CREATE TYPE leave_application_status AS ENUM ('pending', 'rejected', 'manager-approved', 'hod-approved');
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
 
