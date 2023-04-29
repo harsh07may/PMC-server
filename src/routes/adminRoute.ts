@@ -10,7 +10,7 @@ import {
   updateUser,
   checkPermissions,
   ROLES,
-} from "../services/admnService";
+} from "../services/adminService";
 
 //ENDPOINTS
 router.post(
