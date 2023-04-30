@@ -70,6 +70,34 @@ CREATE TABLE user_auditlogs(
     loggedintime TEXT NOT NULL
 );
 
+CREATE TABLE TradeLicense_Records(
+    recordId SERIAL PRIMARY KEY,
+	licenseNo TEXT NOT NULL,
+    locality TEXT NOT NULL,
+	title TEXT NOT NULL,
+	fileLink TEXT NOT NULL,
+    timestamp TEXT NOT NULL 
+);
+
+CREATE TABLE Death_Records(
+    recordId SERIAL PRIMARY KEY,
+    month TEXT NOT NULL,
+    year TEXT NOT NULL,
+	title TEXT NOT NULL,
+    fileLink TEXT NOT NULL,
+    timestamp TEXT NOT NULL
+);
+
+ALTER TABLE municipal_records RENAME COLUMN wardNo TO surveyNo;
+ALTER TABLE municipal_records RENAME COLUMN subDivNo TO locality;
+
+ALTER TABLE ConstructionLicense_Records RENAME COLUMN subDivNo TO surveyNo;
+
+ALTER TABLE HouseTax_Records RENAME COLUMN wardNo TO locality;
+
+ALTER TABLE Birth_Records ADD COLUMN title TEXT NOT NULL;
+
+
 CREATE TYPE leave_application_status AS ENUM ('pending', 'rejected', 'manager-approved', 'hod-approved');
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
 
