@@ -1,4 +1,6 @@
 import express, { Request, Response } from "express";
+import * as https from 'https';
+import * as fs from 'fs';
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { pool } from "./utils/db";
@@ -7,13 +9,17 @@ import { router as DigitizationRoute } from "./routes/digitizationRoute";
 import { router as AdminRoute } from "./routes/adminRoute";
 
 const app = express();
+const options = {
+  key: fs.readFileSync(`./key.pem`),
+  cert: fs.readFileSync(`./cert.pem`),
+};
 
 //MIDDLEWARE
 //test
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: `http://${process.env.HOST}:5173`,
     credentials: true,
     exposedHeaders: "content-disposition",
   })
@@ -41,6 +47,10 @@ app.use("/api/v1/admin", AdminRoute);
 // app.use("/api/v1/user", TrackingRoute);
 
 //LISTENER
-app.listen(process.env.PORT, () => {
-  console.log(`Server started on port ${process.env.PORT}`);
+// app.listen(Number(process.env.PORT), `${process.env.HOST}`, () => {
+//   console.log(`Server started on host ${process.env.HOST} and port ${process.env.PORT}`);
+// });
+
+https.createServer(options, app).listen(Number(process.env.PORT), process.env.HOST, () => {
+  console.log('Server listening on host ' + process.env.HOST + ' and on port ' + process.env.PORT);
 });

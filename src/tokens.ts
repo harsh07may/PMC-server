@@ -47,5 +47,6 @@ export const appendRefreshToken = (res: Response, refreshtoken: string) => {
     httpOnly: true,
     path: "/api/v1/user/refresh_token",
     sameSite: "none",
+    secure: true
   });
 };
