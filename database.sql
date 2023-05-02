@@ -11,6 +11,20 @@ CREATE TABLE users(
     timestamp TEXT NOT NULL
 );
 
+CREATE TABLE permissions (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  isAdmin BOOLEAN DEFAULT false,
+  municipality_property_records TEXT DEFAULT 'deny',
+  birth_records TEXT DEFAULT 'deny',
+  death_records TEXT DEFAULT 'deny',
+  construction_license_records TEXT DEFAULT 'deny',
+  house_tax_records TEXT DEFAULT 'deny',
+  trade_license_records TEXT DEFAULT 'deny',
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+
 CREATE TABLE Municipal_Records(
     recordId SERIAL PRIMARY KEY,
     location TEXT NOT NULL,

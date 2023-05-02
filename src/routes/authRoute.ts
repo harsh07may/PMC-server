@@ -68,11 +68,7 @@ router.post("/login", async (req: Request, res: Response) => {
     );
 
     appendRefreshToken(res, refreshtoken);
-    res.send({
-      accesstoken,
-      username: req.body.username,
-      role: user.rows[0].roles,
-    });
+    res.send(accesstoken);
     // appendAccessToken(req, res, accessToken);
   } catch (err: any) {
     console.log(err.message);
@@ -127,9 +123,5 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     [refreshtoken, payload.userId]
   );
   appendRefreshToken(res, refreshtoken);
-  return res.send({
-    accesstoken,
-    username: req.body.username,
-    role: user.rows[0].roles,
-  });
+  return res.send(accesstoken);
 });
