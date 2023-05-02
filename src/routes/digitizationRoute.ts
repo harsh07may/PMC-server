@@ -172,7 +172,17 @@ router.get("/file-download", authMiddleware, async (req, res) => {
         "SELECT * from housetax_records WHERE recordid = $1",
         [recordid]
       );
-    } else if (type === "construction_license") {
+    } else if (type === "death_record") {
+      document = await pool.query(
+        "SELECT * from death_records WHERE recordid = $1",
+        [recordid]
+      );
+    }else if (type === "trade_license_record") {
+      document = await pool.query(
+        "SELECT * from tradelicense_records WHERE recordid = $1",
+        [recordid]
+      );
+    }else if (type === "construction_license") {
       document = await pool.query(
         "SELECT * from constructionlicense_records  WHERE recordid = $1",
         [recordid]
