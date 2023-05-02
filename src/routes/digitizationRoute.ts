@@ -39,20 +39,20 @@ router.post(
         const UserName = req.User.userName;
         const Action = "Upload";
         if (type == "municipal_property_record") {
-          const { wardNo, subDivNo, title } = req.body;
+          const { surveyNo, locality, title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [wardNo, subDivNo, title, FileLink]
+            "INSERT INTO municipal_records (surveyno,locality,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [surveyNo, locality, title, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
         } else if (type == "birth_record") {
-          const { Month, Year } = req.body;
+          const { Month, Year, Title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [Month, Year, FileLink]
+            "INSERT INTO birth_records (month,year,filelink, timestamp, title) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $4) RETURNING *",
+            [Month, Year, FileLink, Title]
           );
 
           auditContent = await pool.query(
@@ -60,20 +60,40 @@ router.post(
             [type, `${Month + "/" + Year}`, Action, UserName]
           );
         } else if (type === "house_tax_record") {
-          const { wardNo, houseNo, name } = req.body;
+          const { locality, houseNo, name } = req.body;
           newContent = await pool.query(
-            "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [wardNo, houseNo, name, FileLink]
+            "INSERT INTO housetax_records (locality, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [locality, houseNo, name, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, name, Action, UserName]
           );
-        } else {
-          const { licenseNo, subDivNo, year, name } = req.body;
+        }else if (type === "death_record") {
+          const { Month, Year, Title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [licenseNo, subDivNo, year, name, FileLink]
+            "INSERT INTO death_records (month, year, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [Month, Year, Title, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, `${Month + "/" + Year}`, Action, UserName]
+          );
+        } else if (type === "trade_license_record") {
+          const { licenseNo, locality, title } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO tradelicense_records (licenseNo, locality, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [licenseNo, locality, title, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, title, Action, UserName]
+          );
+        }else {
+          const { licenseNo, surveyNo, year, name } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO constructionlicense_records(licenseno, surveyno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [licenseNo, surveyNo, year, name, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
