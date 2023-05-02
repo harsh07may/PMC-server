@@ -13,8 +13,8 @@ CREATE TABLE users(
 
 CREATE TABLE Municipal_Records(
     recordId SERIAL PRIMARY KEY,
-    wardNo TEXT NOT NULL,
-    subDivNo TEXT NOT NULL,
+    location TEXT NOT NULL,
+    surveyNo TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
     timestamp TEXT NOT NULL
@@ -23,15 +23,16 @@ CREATE TABLE Birth_Records(
     recordId SERIAL PRIMARY KEY,
     month TEXT NOT NULL,
     year TEXT NOT NULL,
+    title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
     timestamp TEXT NOT NULL
 );
 
 CREATE TABLE HouseTax_Records(
     recordId SERIAL PRIMARY KEY,
-    wardNo TEXT NOT NULL,
+    location TEXT NOT NULL,
     houseNo TEXT NOT NULL,
-	name TEXT NOT NULL,
+	title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
 	timestamp TEXT NOT NULL
 );
@@ -39,9 +40,9 @@ CREATE TABLE HouseTax_Records(
 CREATE TABLE ConstructionLicense_Records(
     recordId SERIAL PRIMARY KEY,
     licenseNo TEXT NOT NULL,
-    subDivNo TEXT NOT NULL,
-	year TEXT NOT NULL,
-	name TEXT NOT NULL,
+    surveyNo TEXT NOT NULL,
+    location TEXT NOT NULL,
+	title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
 	timestamp TEXT NOT NULL
 );
@@ -73,7 +74,7 @@ CREATE TABLE user_auditlogs(
 CREATE TABLE TradeLicense_Records(
     recordId SERIAL PRIMARY KEY,
 	licenseNo TEXT NOT NULL,
-    locality TEXT NOT NULL,
+    location TEXT NOT NULL,
 	title TEXT NOT NULL,
 	fileLink TEXT NOT NULL,
     timestamp TEXT NOT NULL 
@@ -89,12 +90,17 @@ CREATE TABLE Death_Records(
 );
 
 ALTER TABLE municipal_records RENAME COLUMN wardNo TO surveyNo;
-ALTER TABLE municipal_records RENAME COLUMN subDivNo TO locality;
+ALTER TABLE municipal_records RENAME COLUMN subDivNo TO location;
 
 ALTER TABLE ConstructionLicense_Records RENAME COLUMN subDivNo TO surveyNo;
+ALTER TABLE ConstructionLicense_Records RENAME COLUMN year TO location;
+ALTER TABLE ConstructionLicense_Records RENAME COLUMN name TO title;
 
-ALTER TABLE HouseTax_Records RENAME COLUMN wardNo TO locality;
+ALTER TABLE HouseTax_Records RENAME COLUMN wardNo TO location;
+ALTER TABLE HouseTax_Records RENAME COLUMN name TO title;
 
+-- DELETE ALL ENTRIES AND RESET ID
+TRUNCATE TABLE Birth_Records RESTART IDENTITY; 
 ALTER TABLE Birth_Records ADD COLUMN title TEXT NOT NULL;
 
 

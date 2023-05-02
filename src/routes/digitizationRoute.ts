@@ -39,45 +39,64 @@ router.post(
         const UserName = req.User.userName;
         const Action = "Upload";
         if (type == "municipal_property_record") {
-          const { wardNo, subDivNo, title } = req.body;
+          const { surveyNo, location, title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO municipal_records (wardno,subdivno,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [wardNo, subDivNo, title, FileLink]
+            "INSERT INTO municipal_records (surveyno,location,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [surveyNo, location, title, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
         } else if (type == "birth_record") {
-          const { Month, Year } = req.body;
+          const { Month, Year, Title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO birth_records (month,year,filelink, timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [Month, Year, FileLink]
+            "INSERT INTO birth_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [Month, Year, Title, FileLink]
           );
-
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, `${Month + "/" + Year}`, Action, UserName]
+            [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
         } else if (type === "house_tax_record") {
-          const { wardNo, houseNo, name } = req.body;
+          const { location, houseNo, title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO housetax_records (wardno, houseno, name, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [wardNo, houseNo, name, FileLink]
+            "INSERT INTO housetax_records (location, houseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [location, houseNo, title, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, name, Action, UserName]
+            [type, title, Action, UserName]
           );
-        } else {
-          const { licenseNo, subDivNo, year, name } = req.body;
+        } else if (type === "construction_license_record") {
+          const { licenseNo, surveyNo, location, title } = req.body;
           newContent = await pool.query(
-            "INSERT INTO constructionlicense_records(licenseno, subdivno, year, name, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [licenseNo, subDivNo, year, name, FileLink]
+            "INSERT INTO constructionlicense_records(licenseno, surveyno, location, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [licenseNo, surveyNo, location, title, FileLink]
           );
           auditContent = await pool.query(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, name, Action, UserName]
+            [type, title, Action, UserName]
+          );
+        } else if (type === "trade_license_record") {
+          const { location, licenseNo, title } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO tradelicense_records (location, licenseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [location, licenseNo, title, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, title, Action, UserName]
+          );
+        } else if (type == "death_record") {
+          const { Month, Year, Title } = req.body;
+          newContent = await pool.query(
+            "INSERT INTO death_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
+            [Month, Year, Title, FileLink]
+          );
+          auditContent = await pool.query(
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+            [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
         }
 
@@ -94,29 +113,41 @@ router.get("/search", authMiddleware, async (req, res) => {
     const { type } = req.query;
     var document;
     if (type === "municipal_property_record") {
-      const { title, wardNo: wardno, subDivNo: subdivno } = req.query;
+      const { title, surveyno, location } = req.query;
       document = await pool.query(
-        "SELECT * from municipal_records WHERE title LIKE '%' || $1 || '%' AND wardno LIKE '%' || $2 || '%' AND subdivno LIKE '%' || $3 || '%'",
-        [title, wardno, subdivno]
+        "SELECT * from municipal_records WHERE title iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%'",
+        [title, surveyno, location]
       );
     } else if (type === "birth_record") {
-      const { Month, Year } = req.query;
+      const { month, year, title } = req.query;
       document = await pool.query(
-        "SELECT * from birth_records WHERE month LIKE '%' || $1 || '%' AND year LIKE '%' || $2 || '%' ",
-        [Month, Year]
+        "SELECT * from birth_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+        [month, year, title]
       );
     } else if (type === "house_tax_record") {
-      const { WardNo, HouseNo, Name } = req.query;
+      const { location, houseNo, title } = req.query;
       document = await pool.query(
-        "SELECT * from housetax_records WHERE wardno LIKE '%' || $1 || '%' AND houseno LIKE '%' || $2 || '%' AND name LIKE '%' || $3 || '%'",
-        [WardNo, HouseNo, Name]
+        "SELECT * from housetax_records WHERE location iLIKE '%' || $1 || '%' AND houseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+        [location, houseNo, title]
       );
     } else if (type === "construction_license") {
-      const { licenseNo: LicenseNo, subDivNo: SubDivNo, year: Year, title: Name } = req.query;
+      const { licenseNo, surveyNo, location, title } = req.query;
       // console.log(req.query);
       document = await pool.query(
-        "SELECT * from constructionlicense_records WHERE licenseno LIKE '%' || $1 || '%' AND subdivno LIKE '%' || $2 || '%' AND year LIKE '%' || $3 || '%' AND name LIKE '%' || $4 || '%'",
-        [LicenseNo, SubDivNo, Year, Name]
+        "SELECT * from constructionlicense_records WHERE licenseno iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%' AND title iLIKE '%' || $4 || '%'",
+        [licenseNo, surveyNo, location, title]
+      );
+    } else if (type === "trade_license_record") {
+      const { location, licenseNo, title } = req.query;
+      document = await pool.query(
+        "SELECT * from tradelicense_records WHERE location iLIKE '%' || $1 || '%' AND licenseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+        [location, licenseNo, title]
+      );
+    } else if (type === "death_record") {
+      const { month, year, title } = req.query;
+      document = await pool.query(
+        "SELECT * from death_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+        [month, year, title]
       );
     }
 
@@ -155,6 +186,18 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     } else if (type === "construction_license") {
       document = await pool.query(
         "SELECT * from constructionlicense_records  WHERE recordid = $1",
+        [recordid]
+      );
+    }
+    else if (type === "trade_license_record") {
+      document = await pool.query(
+        "SELECT * from tradelicense_records  WHERE recordid = $1",
+        [recordid]
+      );
+    }
+    else if (type === "death_record") {
+      document = await pool.query(
+        "SELECT * from death_records  WHERE recordid = $1",
         [recordid]
       );
     }
