@@ -8,11 +8,9 @@ import {
   addAuditLog,
   addNewUserToDB,
   updateUser,
-  checkPermissions,
-  checkPerms,
-  ROLES,
 } from "../services/adminService";
 
+import { checkPerms } from "../services/userService";
 //ENDPOINTS
 router.post(
   "/register",
