@@ -9,20 +9,21 @@ import {
   addNewUserToDB,
   updateUser,
   checkPermissions,
+  checkPerms,
   ROLES,
 } from "../services/adminService";
 
 //ENDPOINTS
 router.post(
   "/register",
-  authMiddleware,
+  // authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      if (!checkPermissions(req, [ROLES.ADMIN])) {
+      if (!checkPerms(req.User.perms, "admin", "admin")) {
+        console.log();
         const error = new AccessDeniedError("Insufficient Permissions");
         return res.status(error.statusCode).send({ error });
       }
-
       const { username } = req.body; //New User
       const { userName } = req.User; //Performed by
 
@@ -31,13 +32,13 @@ router.post(
         const err = new ExistingUserError("User already exists");
         return res.status(err.statusCode).send({ error: err });
       }
-
       await addNewUserToDB(req.body);
 
       await addAuditLog("register", `Registered User %${username}`, userName);
 
       res.status(201).send(`Registered ${username}`);
     } catch (err: any) {
+      console.log(err);
       res.send({ error: `${err.message}` });
     }
   }
@@ -48,7 +49,7 @@ router.post(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      if (!checkPermissions(req, [ROLES.ADMIN])) {
+      if (!checkPerms(req.User.perms, "admin", "admin")) {
         const error = new AccessDeniedError("Insufficient Permissions");
         return res.status(error.statusCode).send({ error });
       }
@@ -77,7 +78,7 @@ router.get(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      if (!checkPermissions(req, [ROLES.ADMIN])) {
+      if (!checkPerms(req.User.perms, "admin", "admin")) {
         const error = new AccessDeniedError("Insufficient Permissions");
         return res.status(error.statusCode).send({ error });
       }
@@ -89,7 +90,7 @@ router.get(
         return res.status(404).send("Records not found");
       }
       const users = await pool.query(
-        "SELECT user_id,username,fullname,designation,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
+        "SELECT user_id,username,fullname,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 
@@ -105,9 +106,8 @@ router.get(
 );
 
 router.get("/get-user", authMiddleware, async (req: Request, res: Response) => {
-  // console.log(req.query);
   try {
-    if (!checkPermissions(req, [ROLES.ADMIN])) {
+    if (!checkPerms(req.User.perms, "admin", "admin")) {
       const error = new AccessDeniedError("Insufficient Permissions");
       return res.status(error.statusCode).send({ error });
     }
@@ -132,9 +132,8 @@ router.get(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
+      if (!checkPerms(req.User.perms, "admin", "admin")) {
+        const err = new AccessDeniedError("Insufficient Permissions");
         return res.status(err.statusCode).send({ error: err });
       }
       const page = Number(req.query.page) || 1;
@@ -166,9 +165,9 @@ router.get(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const userRole = req.User.userRoles;
-      const err = new AccessDeniedError("You need to be an Admin");
-      if (userRole != "admin") {
+      if (!checkPerms(req.User.perms, "admin", "admin")) {
+        console.log(req.User.perms);
+        const err = new AccessDeniedError("Insufficient Permissions");
         return res.status(err.statusCode).send({ error: err });
       }
       const page = Number(req.query.page) || 1;

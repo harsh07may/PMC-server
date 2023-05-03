@@ -14,7 +14,7 @@ CREATE TABLE users(
 CREATE TABLE permissions (
   id SERIAL PRIMARY KEY,
   user_id INT NOT NULL,
-  isAdmin BOOLEAN DEFAULT false,
+  admin BOOLEAN DEFAULT false,
   municipality_property_records TEXT DEFAULT 'deny',
   birth_records TEXT DEFAULT 'deny',
   death_records TEXT DEFAULT 'deny',
@@ -117,6 +117,8 @@ ALTER TABLE HouseTax_Records RENAME COLUMN name TO title;
 TRUNCATE TABLE Birth_Records RESTART IDENTITY; 
 ALTER TABLE Birth_Records ADD COLUMN title TEXT NOT NULL;
 
+ALTER TABLE users DROP COLUMN designation;
+-- ALTER TABLE users DROP COLUMN roles;
 
 CREATE TYPE leave_application_status AS ENUM ('pending', 'rejected', 'manager-approved', 'hod-approved');
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');

@@ -1,14 +1,16 @@
 import { sign } from "jsonwebtoken";
 import { Request, Response } from "express";
 import { getEnv } from "./utils/constants";
+import { Perms } from "./types/user";
 
 export const createAccessToken = (
   userId: number,
   userName: string,
-  userRoles: string
+  userRoles: string,
+  perms: Perms
 ) => {
   return sign(
-    { userId, userName, userRoles },
+    { userId, userName, userRoles, perms },
     String(getEnv("ACCESS_TOKEN_SECRET")),
     {
       expiresIn: "15m",
@@ -47,6 +49,6 @@ export const appendRefreshToken = (res: Response, refreshtoken: string) => {
     httpOnly: true,
     path: "/api/v1/user/refresh_token",
     sameSite: "none",
-    secure: true
+    secure: true,
   });
 };

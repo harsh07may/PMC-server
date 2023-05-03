@@ -28,22 +28,25 @@ router.post("/login", async (req: Request, res: Response) => {
     ]);
 
     if (user.rows.length === 0) {
-      // throw new Error("Username or Password is incorrect ");
       const err = new FailedLoginError("Username or Password is incorrect");
       return res.status(err.statusCode).send({ error: err });
     }
 
     const valid = await compare(password, user.rows[0].password);
     if (!valid) {
-      // throw new Error("Username or Password is incorrect ");
       const err = new FailedLoginError("Username or Password is incorrect");
       return res.status(err.statusCode).send({ error: err });
     }
 
+    const perms = await pool.query(
+      "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records from permissions WHERE user_id = $1",
+      [user.rows[0].user_id]
+    );
     const accesstoken = createAccessToken(
       user.rows[0].user_id,
       user.rows[0].username,
-      user.rows[0].roles
+      user.rows[0].roles,
+      perms.rows[0]
     );
     const refreshtoken = createRefreshToken(
       user.rows[0].user_id,
@@ -51,25 +54,20 @@ router.post("/login", async (req: Request, res: Response) => {
       user.rows[0].roles
     );
 
-    // const auditContent = await pool.query(
-    //   "INSERT INTO user_auditlogs(username, loggedintime) VALUES ($1, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as loggedintime)) RETURNING *",
-    //   [username]
-    // );
     const Action = "login";
     const description = "login";
-    const auditContent = await pool.query(
+    await pool.query(
       "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
       [Action, description, username]
     );
 
-    const updatedUser = await pool.query(
+    await pool.query(
       "UPDATE users SET refresh_token = $1 WHERE username = $2",
       [refreshtoken, username]
     );
 
     appendRefreshToken(res, refreshtoken);
     res.send(accesstoken);
-    // appendAccessToken(req, res, accessToken);
   } catch (err: any) {
     console.log(err.message);
     res.send({ error: `${err.message}` });
@@ -108,11 +106,11 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
   if (user.rows[0].refresh_token !== token)
     return res.send({ accesstoken: "" });
 
-  const accesstoken = createAccessToken(
-    user.rows[0].user_id,
-    user.rows[0].username,
-    user.rows[0].roles
-  );
+  // const accesstoken = createAccessToken(
+  //   user.rows[0].user_id,
+  //   user.rows[0].username,
+  //   user.rows[0].roles
+  // );
   const refreshtoken = createRefreshToken(
     user.rows[0].user_id,
     user.rows[0].username,
@@ -123,5 +121,5 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     [refreshtoken, payload.userId]
   );
   appendRefreshToken(res, refreshtoken);
-  return res.send(accesstoken);
+  return res.send("accesstoken");
 });
