@@ -1,7 +1,7 @@
 import { JwtPayload, verify } from "jsonwebtoken";
 import { AuthenticationError } from "./models/errors";
 import { getEnv } from "./utils/constants";
-import express, { Request, Response } from "express";
+import { Request, Response } from "express";
 
 export const authMiddleware = (req: Request, res: Response, next: Function) => {
   const authorization = req.header("authorization");

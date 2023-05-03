@@ -26,7 +26,6 @@ router.post("/login", async (req: Request, res: Response) => {
     const user = await pool.query("SELECT * from users WHERE username = $1", [
       username,
     ]);
-
     if (user.rows.length === 0) {
       const err = new FailedLoginError("Username or Password is incorrect");
       return res.status(err.statusCode).send({ error: err });
@@ -85,7 +84,6 @@ router.post("/logout", (req: Request, res: Response) => {
 // 5. Generate token with refresh token
 router.post("/refresh_token", async (req: Request, res: Response) => {
   const token = req.cookies.refreshtoken;
-
   if (!token) return res.send({ accesstoken: "" });
   let payload: JwtPayload | null = null;
   try {
@@ -106,11 +104,16 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
   if (user.rows[0].refresh_token !== token)
     return res.send({ accesstoken: "" });
 
-  // const accesstoken = createAccessToken(
-  //   user.rows[0].user_id,
-  //   user.rows[0].username,
-  //   user.rows[0].roles
-  // );
+  const perms = await pool.query(
+    "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records from permissions WHERE user_id = $1",
+    [user.rows[0].user_id]
+  );
+  const accesstoken = createAccessToken(
+    user.rows[0].user_id,
+    user.rows[0].username,
+    user.rows[0].roles,
+    perms.rows[0]
+  );
   const refreshtoken = createRefreshToken(
     user.rows[0].user_id,
     user.rows[0].username,
@@ -121,5 +124,5 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     [refreshtoken, payload.userId]
   );
   appendRefreshToken(res, refreshtoken);
-  return res.send("accesstoken");
+  return res.send(accesstoken);
 });

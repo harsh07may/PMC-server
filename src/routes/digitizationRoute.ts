@@ -3,10 +3,20 @@ export const router = Router();
 import { authMiddleware } from "../authMiddleware";
 import { pool } from "../utils/db";
 import multer = require("multer");
-import * as fs from "fs";
-const upload = multer({ dest: "uploads/" });
 import { AccessDeniedError, ResourceNotFoundError } from "../models/errors";
 import { checkPerms } from "../services/adminService";
+
+const storage = multer.diskStorage({
+  destination: function (req, file, callback) {
+    callback(null, `${process.env.FILE_DIRECTORY}`)
+  },
+  filename: function (req, file, callback) {
+    const uniquePreffix = new Date().toISOString().replace(/:/g, "-");
+    callback(null, `${uniquePreffix}-${file.originalname}`)
+  }
+})
+
+const upload = multer({ storage: storage })
 
 router.post(
   "/upload",
@@ -15,21 +25,11 @@ router.post(
   async (req, res) => {
     try {
       const err = new AccessDeniedError("Insufficient Permissions");
-
       if (req.file == null) {
         return res.status(400).json({ message: "Please choose one file" });
       } else {
         const file = req.file;
-        const fileStream = fs.createReadStream(file.path);
-        const date = new Date().toISOString().replace(/:/g, "-");
-        const fileName = `${date}-${file.originalname}`;
-        const FileLink = `D:/PMC Document Digitization/${fileName}`;
-
-        const wStream = fs.createWriteStream(FileLink);
-        fileStream.on("data", (data) => {
-          wStream.write(data);
-        });
-
+        const FileLink = `${process.env.FILE_DIRECTORY}/${req.file.filename}`;
         var newContent;
         var auditContent;
         const { type } = req.body;
@@ -148,7 +148,6 @@ router.get("/search", authMiddleware, async (req, res) => {
         return res.status(err.statusCode).send({ error: err });
       }
       const { title, surveyno, location } = req.query;
-      console.log(req.query);
       document = await pool.query(
         "SELECT * from municipal_records WHERE title iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%'",
         [title, surveyno, location]
@@ -216,7 +215,6 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     const username = req.User.userName;
     const err = new AccessDeniedError("Insufficient Permissions");
     const { recordid, type } = req.query;
-    // console.log(req.query);
     const Action = "Download";
 
     var document;
@@ -282,7 +280,6 @@ router.get("/file-download", authMiddleware, async (req, res) => {
 
     const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;
-    // console.log(filePath);
     res.download(filePath);
   } catch (error: any) {
     res.send({ error: `${error.message}` });
