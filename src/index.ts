@@ -7,6 +7,9 @@ import { pool } from "./utils/db";
 import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
 import { router as AdminRoute } from "./routes/adminRoute";
+import { Client } from "pg";
+import { addNewUserToDB } from "./services/adminService";
+import { getEnv } from "./utils/constants";
 import { ResourceNotFoundError } from "./models/errors";
 const app = express();
 const options = {
@@ -19,7 +22,8 @@ const options = {
 app.use(cookieParser());
 app.use(
   cors({
-    origin: `http://${process.env.HOST}:5173`,
+    origin: `http://${String(getEnv("HOST"))}:5173`,
+    // origin: `http://localhost:3050`, //! DOCKER
     credentials: true,
     exposedHeaders: "content-disposition",
   })
@@ -42,10 +46,45 @@ app.get("/getall", async (req: Request, res: Response) => {
     res.status(500).send("Internal Error");
   }
 });
+app.get("/health", async (req: Request, res: Response) => {
+  res.send(`I am alive on ${String(getEnv("HOST"))}:${Number(getEnv("PORT"))}`);
+});
+pool.on("connect", async (client: Client) => {
+  // check if number of users is 0
+  // escape if users > 0
+  // console.log("connected to db");
+  // else add default admin user
+  const doesUserExist = await client.query(
+    "SELECT EXISTS(SELECT 1 FROM users );"
+  );
+  if (!doesUserExist.rows[0].exists) {
+    // console.log(doesUserExist.rows[0].exists);
+    await addNewUserToDB({
+      username: "admin",
+      fullname: "admin",
+      password: "admin",
+      perms: {
+        admin: true,
+        municipality_property_records: "editor",
+        birth_records: "editor",
+        death_records: "editor",
+        construction_license_records: "editor",
+        house_tax_records: "editor",
+        trade_license_records: "editor",
+      },
+    });
+  }
+});
 
 app.use("/api/v1/user", AuthRoute);
 app.use("/api/v1/digitization", DigitizationRoute);
 app.use("/api/v1/admin", AdminRoute);
+
+// ! DOCKER
+// app.use("/v1/user", AuthRoute);
+// app.use("/v1/digitization", DigitizationRoute);
+// app.use("/v1/admin", AdminRoute);
+//!
 
 // app.use("/api/v1/user", LeaveRoute);
 // app.use("/api/v1/user", TrackingRoute);
@@ -55,13 +94,11 @@ app.use("/api/v1/admin", AdminRoute);
 //   console.log(`Server started on host ${process.env.HOST} and port ${process.env.PORT}`);
 // });
 
-https
-  .createServer(options, app)
-  .listen(Number(process.env.PORT), process.env.HOST, () => {
-    console.log(
-      "Server listening on host " +
-        process.env.HOST +
-        " and on port " +
-        process.env.PORT
-    );
-  });
+//LISTENER
+app.listen(Number(getEnv("PORT")), () => {
+  console.log(`Server started on port ${Number(getEnv("PORT"))}`);
+});
+
+// https.createServer(options, app).listen(Number(process.env.PORT), process.env.HOST, () => {
+//   console.log('Server listening on host ' + process.env.HOST + ' and on port ' + process.env.PORT);
+// });

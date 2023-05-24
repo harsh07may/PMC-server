@@ -92,8 +92,33 @@ export async function updateUser({
 }: User) {
   const hashedpassword = await hash(password, 10);
 
-  return pool.query(
-    "UPDATE users SET fullname = $1,designation=$2,password=$3 WHERE username = $5",
+  const user = await pool.query(
+    "UPDATE users SET fullname = $1,password=$2 WHERE username = $3 RETURNING *",
     [fullname, hashedpassword, username]
+  );
+
+  const {
+    admin,
+    municipality_property_records,
+    birth_records,
+    death_records,
+    construction_license_records,
+    house_tax_records,
+    trade_license_records,
+  } = perms;
+
+  const { user_id } = user.rows[0];
+  return pool.query(
+    "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8 WHERE user_id = $1 RETURNING *",
+    [
+      user_id,
+      admin,
+      municipality_property_records,
+      birth_records,
+      death_records,
+      construction_license_records,
+      house_tax_records,
+      trade_license_records,
+    ]
   );
 }

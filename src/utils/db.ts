@@ -3,11 +3,11 @@ import { getEnv } from "./constants";
 import z from "zod";
 
 const db_config: PoolConfig = {
-  user: "postgres",
+  user: String(getEnv("DB_USER")),
   password: String(getEnv("DB_PASSWORD")),
-  host: "localhost",
-  port: 5432,
-  database: "digitization",
+  host: String(getEnv("DB_HOST")),
+  port: Number(getEnv("DB_PORT")),
+  database: String(getEnv("DB_NAME")),
 };
 
 export const enum TABLE {

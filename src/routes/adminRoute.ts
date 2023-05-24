@@ -14,7 +14,7 @@ import { logger } from "../utils/logger";
 //ENDPOINTS
 router.post(
   "/register",
-  // authMiddleware,
+  authMiddleware,
   async (req: Request, res: Response) => {
     const UserName = req.User.UserName;
     try {
@@ -25,10 +25,10 @@ router.post(
         );
         throw new AccessDeniedError("Insufficient Permissions");
       }
-      const { username } = req.body; //New User
-      const { userName } = req.User; //Performed by
+      const newUser = req.body.username; //New User
+      const addingUser = req.User.userName; //Performed by
 
-      const user = await fetchUser(username);
+      const user = await fetchUser(newUser);
       if (user.rows.length > 0) {
         logger.log(
           "error",
@@ -38,9 +38,9 @@ router.post(
       }
       await addNewUserToDB(req.body);
 
-      await addAuditLog("register", `Registered User %${username}`, userName);
+      await addAuditLog("register", `Registered User %${newUser}`, addingUser);
 
-      res.status(201).send(`Registered ${username}`);
+      res.status(201).send(`Registered ${newUser}`);
     } catch (err: any) {
       logger.log("error", err);
       res.status(err.statusCode).send({ err });
@@ -63,19 +63,19 @@ router.post(
         throw new AccessDeniedError("Insufficient Permissions");
       }
 
-      const { username } = req.body; //New User
-      const { userName } = req.User; //Performed by
+      const modifiedUser = req.body.username; //New User
+      const addingUser = req.User.userName; //Performed by
 
-      const user = await fetchUser(username);
+      const user = await fetchUser(modifiedUser);
       if (user.rows.length === 0) {
         return res.status(404).send("User not Found");
       }
 
       await updateUser(req.body);
 
-      await addAuditLog("update", `Updated user %${username}`, userName);
+      await addAuditLog("update", `Updated user %${modifiedUser}`, addingUser);
 
-      return res.send(`Updated ${username}`);
+      return res.status(200).send(`Updated ${modifiedUser}`);
     } catch (err: any) {
       res.status(err.statusCode).send({ err });
     }
@@ -100,7 +100,7 @@ router.get(
       }
       //! Remove Roles, Add perms, Order by perms, admin #1 priority
       const users = await pool.query(
-        "SELECT user_id,username,fullname,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
+        "SELECT user_id,username,fullname,timestamp FROM users ORDER BY username ASC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 
