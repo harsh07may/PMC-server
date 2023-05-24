@@ -1,0 +1,10 @@
+2023-05-20 12:30:16 error: Failed Login Attempt with username:user1. User entered invalid username
+[2023-05-20 12:33:28] error: Failed Login Attempt with username:user1. User entered invalid username
+[2023-05-20 12:34:28] [error]: Failed Login Attempt with username:user1. User entered invalid username
+[2023-05-20/12:40:17] [error]: Failed Login Attempt with username:user1. User entered invalid username
+[2023-05-20 12:48:12] [error]: Failed Login Attempt with username:user1. User entered invalid username
+[2023-05-24 20:33:15] [error]: Failed to access protected route. No access token provided in header.
+[2023-05-24 20:33:31] [error]: Failed to verify token.
+[2023-05-24 20:36:42] [error]: Failed to verify access token. SyntaxError: Unexpected token � in JSON at position 13
+[2023-05-24 20:41:13] [error]: Failed to verify access token. SyntaxError: Unexpected token � in JSON at position 13
+[2023-05-24 20:54:29] [error]: Failed to verify access token. TokenExpiredError: jwt expired

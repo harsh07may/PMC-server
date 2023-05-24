@@ -3,20 +3,25 @@ export const router = Router();
 import { authMiddleware } from "../authMiddleware";
 import { pool } from "../utils/db";
 import multer = require("multer");
-import { AccessDeniedError, ResourceNotFoundError } from "../models/errors";
+import {
+  AccessDeniedError,
+  ResourceNotFoundError,
+  InternalError,
+} from "../models/errors";
+import { logger } from "../utils/logger";
 import { checkPerms } from "../services/adminService";
 
 const storage = multer.diskStorage({
   destination: function (req, file, callback) {
-    callback(null, `${process.env.FILE_DIRECTORY}`)
+    callback(null, `${process.env.FILE_DIRECTORY}`);
   },
   filename: function (req, file, callback) {
     const uniquePreffix = new Date().toISOString().replace(/:/g, "-");
-    callback(null, `${uniquePreffix}-${file.originalname}`)
-  }
-})
+    callback(null, `${uniquePreffix}-${file.originalname}`);
+  },
+});
 
-const upload = multer({ storage: storage })
+const upload = multer({ storage: storage });
 
 router.post(
   "/upload",
@@ -24,29 +29,33 @@ router.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const err = new AccessDeniedError("Insufficient Permissions");
       if (req.file == null) {
-        return res.status(400).json({ message: "Please choose one file" });
-      } else {
-        const file = req.file;
-        const FileLink = `${process.env.FILE_DIRECTORY}/${req.file.filename}`;
-        var newContent;
-        var auditContent;
-        const { type } = req.body;
-        const UserName = req.User.userName;
-        const Action = "Upload";
-        if (type == "municipal_property_record") {
-          if (
-            !checkPerms(
-              req.User.perms,
-              "municipality_property_records",
-              "editor"
-            )
-          ) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { surveyNo, location, title } = req.body;
+        //? Is this an Internal Error or BadReq ?
+        logger.log(
+          "error",
+          `Failed to upload file. No file was sent in the request.`
+        );
+        throw new InternalError("No File Selected");
+      }
+      const FileLink = `${process.env.FILE_DIRECTORY}/${req.file.filename}`;
+      var newContent;
+      var auditContent;
+      const { type } = req.body;
+      const UserName = req.User.userName; //Performed By
+      const Action = "Upload";
+      if (type == "municipal_property_record") {
+        if (
+          !checkPerms(req.User.perms, "municipality_property_records", "editor")
+        ) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { surveyNo, location, title } = req.body;
 
+        try {
           newContent = await pool.query(
             "INSERT INTO municipal_records (surveyno,location,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [surveyNo, location, title, FileLink]
@@ -55,11 +64,23 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
-        } else if (type == "birth_record") {
-          if (!checkPerms(req.User.perms, "birth_records", "editor")) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { Month, Year, Title } = req.body;
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
+        }
+      } else if (type == "birth_record") {
+        if (!checkPerms(req.User.perms, "birth_records", "editor")) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { Month, Year, Title } = req.body;
+        try {
           newContent = await pool.query(
             "INSERT INTO birth_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [Month, Year, Title, FileLink]
@@ -68,11 +89,23 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
-        } else if (type === "house_tax_record") {
-          if (!checkPerms(req.User.perms, "house_tax_records", "editor")) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { location, houseNo, title } = req.body;
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
+        }
+      } else if (type === "house_tax_record") {
+        if (!checkPerms(req.User.perms, "house_tax_records", "editor")) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { location, houseNo, title } = req.body;
+        try {
           newContent = await pool.query(
             "INSERT INTO housetax_records (location, houseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [location, houseNo, title, FileLink]
@@ -81,17 +114,25 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
-        } else if (type === "construction_license_record") {
-          if (
-            !checkPerms(
-              req.User.perms,
-              "construction_license_records",
-              "editor"
-            )
-          ) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { licenseNo, surveyNo, location, title } = req.body;
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
+        }
+      } else if (type === "construction_license_record") {
+        if (
+          !checkPerms(req.User.perms, "construction_license_records", "editor")
+        ) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { licenseNo, surveyNo, location, title } = req.body;
+        try {
           newContent = await pool.query(
             "INSERT INTO constructionlicense_records(licenseno, surveyno, location, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [licenseNo, surveyNo, location, title, FileLink]
@@ -100,11 +141,23 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
-        } else if (type === "trade_license_record") {
-          if (!checkPerms(req.User.perms, "trade_license_records", "editor")) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { location, licenseNo, title } = req.body;
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
+        }
+      } else if (type === "trade_license_record") {
+        if (!checkPerms(req.User.perms, "trade_license_records", "editor")) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { location, licenseNo, title } = req.body;
+        try {
           newContent = await pool.query(
             "INSERT INTO tradelicense_records (location, licenseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [location, licenseNo, title, FileLink]
@@ -113,11 +166,23 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, title, Action, UserName]
           );
-        } else if (type == "death_record") {
-          if (!checkPerms(req.User.perms, "death_records", "editor")) {
-            return res.status(err.statusCode).send({ error: err });
-          }
-          const { Month, Year, Title } = req.body;
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
+        }
+      } else if (type == "death_record") {
+        if (!checkPerms(req.User.perms, "death_records", "editor")) {
+          logger.log(
+            "error",
+            `User ${UserName} attempted to access a resource without sufficient permissions.`
+          );
+          throw new AccessDeniedError("Insufficient Permissions");
+        }
+        const { Month, Year, Title } = req.body;
+        try {
           newContent = await pool.query(
             "INSERT INTO death_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
             [Month, Year, Title, FileLink]
@@ -126,12 +191,18 @@ router.post(
             "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
             [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
+        } catch (error: any) {
+          logger.log(
+            "error",
+            `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+          );
+          throw new InternalError("Internal Server Error");
         }
-
-        res.json(newContent.rows[0]);
       }
+
+      res.json(newContent.rows[0]);
     } catch (error: any) {
-      res.send({ error: `${error.message}` });
+      res.status(error.statusCode).send(error.message);
     }
   }
 );
@@ -139,73 +210,149 @@ router.post(
 router.get("/search", authMiddleware, async (req, res) => {
   try {
     const { type } = req.query;
-    const err = new AccessDeniedError("Insufficient Permissions");
+    const UserName = req.User.userName;
     var document;
     if (type === "municipal_property_record") {
       if (
         !checkPerms(req.User.perms, "municipality_property_records", "viewer")
       ) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { title, surveyno, location } = req.query;
-      document = await pool.query(
-        "SELECT * from municipal_records WHERE title iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%'",
-        [title, surveyno, location]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from municipal_records WHERE title iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%'",
+          [title, surveyno, location]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "birth_record") {
       if (!checkPerms(req.User.perms, "birth_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { month, year, title } = req.query;
-      document = await pool.query(
-        "SELECT * from birth_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
-        [month, year, title]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from birth_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+          [month, year, title]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "house_tax_record") {
       if (!checkPerms(req.User.perms, "house_tax_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { location, houseNo, title } = req.query;
-      document = await pool.query(
-        "SELECT * from housetax_records WHERE location iLIKE '%' || $1 || '%' AND houseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
-        [location, houseNo, title]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from housetax_records WHERE location iLIKE '%' || $1 || '%' AND houseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+          [location, houseNo, title]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "construction_license") {
       if (
         !checkPerms(req.User.perms, "construction_license_records", "viewer")
       ) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { licenseNo, surveyNo, location, title } = req.query;
-      document = await pool.query(
-        "SELECT * from constructionlicense_records WHERE licenseno iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%' AND title iLIKE '%' || $4 || '%'",
-        [licenseNo, surveyNo, location, title]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from constructionlicense_records WHERE licenseno iLIKE '%' || $1 || '%' AND surveyno iLIKE '%' || $2 || '%' AND location iLIKE '%' || $3 || '%' AND title iLIKE '%' || $4 || '%'",
+          [licenseNo, surveyNo, location, title]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "trade_license_record") {
       if (!checkPerms(req.User.perms, "trade_license_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { location, licenseNo, title } = req.query;
-      document = await pool.query(
-        "SELECT * from tradelicense_records WHERE location iLIKE '%' || $1 || '%' AND licenseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
-        [location, licenseNo, title]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from tradelicense_records WHERE location iLIKE '%' || $1 || '%' AND licenseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+          [location, licenseNo, title]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "death_record") {
       if (!checkPerms(req.User.perms, "death_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { month, year, title } = req.query;
-      document = await pool.query(
-        "SELECT * from death_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
-        [month, year, title]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from death_records WHERE month iLIKE '%' || $1 || '%' AND year iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+          [month, year, title]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${UserName}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     }
-
-    if (document.rowCount === 0) throw new Error("File not found");
+    if (document.rowCount === 0) {
+      throw new ResourceNotFoundError("File Not Found");
+    }
     res.send(document.rows);
   } catch (error: any) {
-    res.status(404).send(`${error.message}`);
-    // res.status(error.statusCode).send({ error: error });
+    res.status(error.statusCode).send(error.message);
   }
 });
 
@@ -222,61 +369,141 @@ router.get("/file-download", authMiddleware, async (req, res) => {
       if (
         !checkPerms(req.User.perms, "municipality_property_records", "viewer")
       ) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from municipal_records WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from municipal_records WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "birth_record") {
       if (!checkPerms(req.User.perms, "birth_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from birth_records WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from birth_records WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "house_tax_record") {
       if (!checkPerms(req.User.perms, "house_tax_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from housetax_records WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from housetax_records WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "death_record") {
       if (!checkPerms(req.User.perms, "death_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from death_records WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from death_records WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "trade_license_record") {
       if (!checkPerms(req.User.perms, "trade_license_records", "viewer")) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from tradelicense_records WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from tradelicense_records WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     } else if (type === "construction_license") {
       if (
         !checkPerms(req.User.perms, "construction_license_records", "viewer")
       ) {
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${username} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
-      document = await pool.query(
-        "SELECT * from constructionlicense_records  WHERE recordid = $1",
-        [recordid]
-      );
+      try {
+        document = await pool.query(
+          "SELECT * from constructionlicense_records  WHERE recordid = $1",
+          [recordid]
+        );
+      } catch (error: any) {
+        logger.log(
+          "error",
+          `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+        );
+        throw new InternalError("Internal Server Error");
+      }
     }
 
     if (document.rowCount === 0) throw new Error("File not found");
-    auditContent = await pool.query(
-      "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-      [type, document.rows[0].filelink, Action, username]
-    );
+    try {
+      auditContent = await pool.query(
+        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
+        [type, document.rows[0].filelink, Action, username]
+      );
+    } catch (error: any) {
+      logger.log(
+        "error",
+        `Failed Query. Error message: ${error.message}. Error Code ${error.code} User ID:${username}`
+      );
+      throw new InternalError("Internal Server Error");
+    }
 
     const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;

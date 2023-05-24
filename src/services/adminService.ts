@@ -12,7 +12,7 @@ export enum ROLES {
 //SERVICES
 export async function fetchUser(username: string) {
   return pool.query(
-    "SELECT user_id,username,fullname FROM users WHERE username = $1",
+    "SELECT user_id,username,fullname,password FROM users WHERE username = $1",
     [username]
   );
 }
@@ -39,7 +39,7 @@ export async function addNewUserToDB({
   );
   const { user_id } = user.rows[0];
   return pool.query(
-    "INSERT INTO permissions (user_id,isAdmin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+    "INSERT INTO permissions (user_id,admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
     [
       user_id,
       admin,

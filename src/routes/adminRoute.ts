@@ -9,26 +9,32 @@ import {
   addNewUserToDB,
   updateUser,
 } from "../services/adminService";
-
 import { checkPerms } from "../services/userService";
+import { logger } from "../utils/logger";
 //ENDPOINTS
 router.post(
   "/register",
   // authMiddleware,
   async (req: Request, res: Response) => {
+    const UserName = req.User.UserName;
     try {
       if (!checkPerms(req.User.perms, "admin", "admin")) {
-        console.log();
-        const error = new AccessDeniedError("Insufficient Permissions");
-        return res.status(error.statusCode).send({ error });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+        throw new AccessDeniedError("Insufficient Permissions");
       }
       const { username } = req.body; //New User
       const { userName } = req.User; //Performed by
 
       const user = await fetchUser(username);
       if (user.rows.length > 0) {
-        const err = new ExistingUserError("User already exists");
-        return res.status(err.statusCode).send({ error: err });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to register a username that already exists.`
+        );
+        throw new ExistingUserError("User already exists");
       }
       await addNewUserToDB(req.body);
 
@@ -36,8 +42,8 @@ router.post(
 
       res.status(201).send(`Registered ${username}`);
     } catch (err: any) {
-      console.log(err);
-      res.send({ error: `${err.message}` });
+      logger.log("error", err);
+      res.status(err.statusCode).send({ err });
     }
   }
 );
@@ -46,10 +52,15 @@ router.post(
   "/update-user",
   authMiddleware,
   async (req: Request, res: Response) => {
+    const UserName = req.User.UserName;
     try {
       if (!checkPerms(req.User.perms, "admin", "admin")) {
-        const error = new AccessDeniedError("Insufficient Permissions");
-        return res.status(error.statusCode).send({ error });
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+
+        throw new AccessDeniedError("Insufficient Permissions");
       }
 
       const { username } = req.body; //New User
@@ -66,7 +77,7 @@ router.post(
 
       return res.send(`Updated ${username}`);
     } catch (err: any) {
-      res.status(400).send({ error: `${err.message}` });
+      res.status(err.statusCode).send({ err });
     }
   }
 );
@@ -87,6 +98,7 @@ router.get(
       if (offset > count.rows[0].count) {
         return res.status(404).send("Records not found");
       }
+      //! Remove Roles, Add perms, Order by perms, admin #1 priority
       const users = await pool.query(
         "SELECT user_id,username,fullname,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
         [limit, offset]

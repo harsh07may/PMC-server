@@ -32,17 +32,17 @@ export const createRefreshToken = (
   );
 };
 
-export const appendAccessToken = (
-  req: Request,
-  res: Response,
-  accesstoken: string
-) => {
-  res.send({
-    accesstoken,
-    username: req.body.username,
-    userrole: req.body.userrole,
-  });
-};
+// export const appendAccessToken = (
+//   req: Request,
+//   res: Response,
+//   accesstoken: string
+// ) => {
+//   res.send({
+//     accesstoken,
+//     username: req.body.username,
+//     userrole: req.body.userrole,
+//   });
+// };
 
 export const appendRefreshToken = (res: Response, refreshtoken: string) => {
   res.cookie("refreshtoken", refreshtoken, {

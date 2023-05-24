@@ -1,4 +1,4 @@
-class GenericError extends Error {
+export class GenericError extends Error {
   public statusCode: number;
 
   constructor(message: string, type = "GenericError", statusCode = 500) {
@@ -42,5 +42,10 @@ export class ValidationError extends GenericError {
 export class ResourceNotFoundError extends GenericError {
   constructor(message: string) {
     super(message, "ResourceNotFoundError", 404);
+  }
+}
+export class InternalError extends GenericError {
+  constructor(message: string) {
+    super(message, "InternalError", 500);
   }
 }

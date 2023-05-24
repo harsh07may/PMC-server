@@ -1,13 +1,13 @@
 import express, { Request, Response } from "express";
-import * as https from 'https';
-import * as fs from 'fs';
+import * as https from "https";
+import * as fs from "fs";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { pool } from "./utils/db";
 import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
 import { router as AdminRoute } from "./routes/adminRoute";
-
+import { ResourceNotFoundError } from "./models/errors";
 const app = express();
 const options = {
   key: fs.readFileSync(`./key.pem`),
@@ -32,10 +32,14 @@ app.use(express.urlencoded({ extended: true })); //support url encoded bodies
 app.get("/getall", async (req: Request, res: Response) => {
   try {
     const allContent = await pool.query("SELECT * from users");
-
+    if (allContent.rows == 0) {
+      const err = new ResourceNotFoundError("Users Not Found");
+      res.status(err.statusCode).send({ error: err.message });
+    }
     res.json(allContent.rows);
   } catch (err: any) {
     console.log(err.message);
+    res.status(500).send("Internal Error");
   }
 });
 
@@ -51,6 +55,13 @@ app.use("/api/v1/admin", AdminRoute);
 //   console.log(`Server started on host ${process.env.HOST} and port ${process.env.PORT}`);
 // });
 
-https.createServer(options, app).listen(Number(process.env.PORT), process.env.HOST, () => {
-  console.log('Server listening on host ' + process.env.HOST + ' and on port ' + process.env.PORT);
-});
+https
+  .createServer(options, app)
+  .listen(Number(process.env.PORT), process.env.HOST, () => {
+    console.log(
+      "Server listening on host " +
+        process.env.HOST +
+        " and on port " +
+        process.env.PORT
+    );
+  });
