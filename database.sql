@@ -4,9 +4,7 @@ CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
     fullname TEXT NOT NULL,
-    designation TEXT NOT NULL,
     password TEXT NOT NULL,
-    roles TEXT NOT NULL,
     refresh_token TEXT,
     timestamp TEXT NOT NULL
 );
@@ -76,13 +74,6 @@ CREATE TABLE admin_auditlogs(
 	Action TEXT NOT NULL,
 	description TEXT NOT NULL,
 	performedBy TEXT NOT NULL
-);
-
-
-CREATE TABLE user_auditlogs(
-    logId SERIAL PRIMARY KEY,
-    username TEXT NOT NULL,
-    loggedintime TEXT NOT NULL
 );
 
 CREATE TABLE TradeLicense_Records(

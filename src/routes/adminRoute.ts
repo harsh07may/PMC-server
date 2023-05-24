@@ -14,7 +14,7 @@ import { checkPerms } from "../services/userService";
 //ENDPOINTS
 router.post(
   "/register",
-  // authMiddleware,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       if (!checkPerms(req.User.perms, "admin", "admin")) {
@@ -22,19 +22,19 @@ router.post(
         const error = new AccessDeniedError("Insufficient Permissions");
         return res.status(error.statusCode).send({ error });
       }
-      const { username } = req.body; //New User
-      const { userName } = req.User; //Performed by
+      const newUser = req.body.username; //New User
+      const addingUser = req.User.userName; //Performed by
 
-      const user = await fetchUser(username);
+      const user = await fetchUser(newUser);
       if (user.rows.length > 0) {
         const err = new ExistingUserError("User already exists");
         return res.status(err.statusCode).send({ error: err });
       }
       await addNewUserToDB(req.body);
 
-      await addAuditLog("register", `Registered User %${username}`, userName);
+      await addAuditLog("register", `Registered User %${newUser}`, addingUser);
 
-      res.status(201).send(`Registered ${username}`);
+      res.status(201).send(`Registered ${newUser}`);
     } catch (err: any) {
       console.log(err);
       res.send({ error: `${err.message}` });
@@ -52,19 +52,19 @@ router.post(
         return res.status(error.statusCode).send({ error });
       }
 
-      const { username } = req.body; //New User
-      const { userName } = req.User; //Performed by
+      const modifiedUser = req.body.username; //New User
+      const addingUser = req.User.userName; //Performed by
 
-      const user = await fetchUser(username);
+      const user = await fetchUser(modifiedUser);
       if (user.rows.length === 0) {
         return res.status(404).send("User not Found");
       }
 
       await updateUser(req.body);
 
-      await addAuditLog("update", `Updated user %${username}`, userName);
+      await addAuditLog("update", `Updated user %${modifiedUser}`, addingUser);
 
-      return res.send(`Updated ${username}`);
+      return res.status(200).send(`Updated ${modifiedUser}`);
     } catch (err: any) {
       res.status(400).send({ error: `${err.message}` });
     }
@@ -88,7 +88,7 @@ router.get(
         return res.status(404).send("Records not found");
       }
       const users = await pool.query(
-        "SELECT user_id,username,fullname,roles,timestamp FROM users ORDER BY roles ASC LIMIT $1 OFFSET $2",
+        "SELECT user_id,username,fullname,timestamp FROM users ORDER BY username ASC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 

@@ -5,10 +5,11 @@ import { pool } from "../utils/db";
 import multer = require("multer");
 import { AccessDeniedError, ResourceNotFoundError } from "../models/errors";
 import { checkPerms } from "../services/adminService";
+import { getEnv } from "../utils/constants";
 
 const storage = multer.diskStorage({
   destination: function (req, file, callback) {
-    callback(null, `${process.env.FILE_DIRECTORY}`)
+    callback(null, `${getEnv("FILE_DIRECTORY")}`)
   },
   filename: function (req, file, callback) {
     const uniquePreffix = new Date().toISOString().replace(/:/g, "-");
@@ -29,7 +30,7 @@ router.post(
         return res.status(400).json({ message: "Please choose one file" });
       } else {
         const file = req.file;
-        const FileLink = `${process.env.FILE_DIRECTORY}/${req.file.filename}`;
+        const FileLink = `${getEnv("FILE_DIRECTORY")}/${req.file.filename}`;
         var newContent;
         var auditContent;
         const { type } = req.body;

@@ -7,3 +7,5 @@ request.rest
 uploads
 key.pem
 cert.pem
+Dockerfile
+.dockerignore
