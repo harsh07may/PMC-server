@@ -8,3 +8,6 @@
 [2023-05-24 20:36:42] [error]: Failed to verify access token. SyntaxError: Unexpected token � in JSON at position 13
 [2023-05-24 20:41:13] [error]: Failed to verify access token. SyntaxError: Unexpected token � in JSON at position 13
 [2023-05-24 20:54:29] [error]: Failed to verify access token. TokenExpiredError: jwt expired
+[2023-06-02 12:43:43] [error]: relation "application" does not exist
+[2023-06-04 11:49:37] [error]: relation "application" does not exist
+[2023-06-04 12:06:09] [error]: Applications Not Found

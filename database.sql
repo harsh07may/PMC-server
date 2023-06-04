@@ -1,5 +1,11 @@
+-- psql -U postgres => login to psql
+-- \c digitization  => switch to db
+-- \dt
+-- \d [table_name] => describe table schema
+
 CREATE DATABASE digitization;
 
+-- TODO: Remove fullname
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
@@ -8,7 +14,6 @@ CREATE TABLE users(
     refresh_token TEXT,
     timestamp TEXT NOT NULL
 );
-
 CREATE TABLE permissions (
   id SERIAL PRIMARY KEY,
   user_id INT NOT NULL,
@@ -21,7 +26,6 @@ CREATE TABLE permissions (
   trade_license_records TEXT DEFAULT 'deny',
   FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
-
 
 CREATE TABLE Municipal_Records(
     recordId SERIAL PRIMARY KEY,
@@ -109,7 +113,6 @@ TRUNCATE TABLE Birth_Records RESTART IDENTITY;
 ALTER TABLE Birth_Records ADD COLUMN title TEXT NOT NULL;
 
 ALTER TABLE users DROP COLUMN designation;
--- ALTER TABLE users DROP COLUMN roles;
 
 CREATE TYPE leave_application_status AS ENUM ('pending', 'rejected', 'manager-approved', 'hod-approved');
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
@@ -129,7 +132,23 @@ CREATE TABLE leave_applications(
 -- DELETE ALL ENTRIES AND RESET ID
 TRUNCATE TABLE users RESTART IDENTITY; 
 
--- psql -U postgres => login to psql
--- \c digitization  => switch to db
--- \dt
--- \d [table_name] => describe table schema
+-- APPLICATION TRACKING
+CREATE TABLE application(
+    ref_id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL,
+    created_at DATE NOT NULL,
+    outwarded BOOLEAN DEFAULT false
+    )
+
+CREATE TYPE application_status AS ENUM ('unseen', 'accepted','rejected');
+CREATE TABLE application_trail(
+    trail_id SERIAL PRIMARY KEY,
+    ref_id TEXT NOT NULL REFERENCES application(ref_id),
+    transfer_no INT NOT NULL,
+    transfer_time DATE NOT NULL,
+    sender TEXT NOT NULL,
+    reciever TEXT NOT NULL,
+    status application_status NOT NULL DEFAULT 'unseen'
+);
+
+
