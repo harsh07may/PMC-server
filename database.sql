@@ -136,9 +136,10 @@ TRUNCATE TABLE users RESTART IDENTITY;
 CREATE TABLE application(
     ref_id TEXT PRIMARY KEY NOT NULL,
     title TEXT NOT NULL,
-    created_at DATE NOT NULL,
-    outwarded BOOLEAN DEFAULT false
-    )
+    created_at DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    outwarded BOOLEAN DEFAULT false,
+    holder TEXT NOT NULL DEFAULT 'Central Inward'
+    );
 
 CREATE TYPE application_status AS ENUM ('unseen', 'accepted','rejected');
 CREATE TABLE application_trail(

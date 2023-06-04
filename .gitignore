@@ -9,3 +9,4 @@ key.pem
 cert.pem
 Dockerfile
 .dockerignore
+error.log

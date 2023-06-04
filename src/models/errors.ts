@@ -39,6 +39,11 @@ export class ValidationError extends GenericError {
   }
 }
 
+export class BadRequestError extends GenericError {
+  constructor(message: any) {
+    super(message, "BadRequestError", 400);
+  }
+}
 export class ResourceNotFoundError extends GenericError {
   constructor(message: string) {
     super(message, "ResourceNotFoundError", 404);
