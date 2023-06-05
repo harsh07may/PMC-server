@@ -13,10 +13,10 @@ import { addNewUserToDB } from "./services/adminService";
 import { getEnv } from "./utils/constants";
 import { ResourceNotFoundError } from "./models/errors";
 const app = express();
-const options = {
-  key: fs.readFileSync(`./key.pem`),
-  cert: fs.readFileSync(`./cert.pem`),
-};
+// const options = {
+//   key: fs.readFileSync(`./key.pem`),
+//   cert: fs.readFileSync(`./cert.pem`),
+// };
 
 //MIDDLEWARE
 //test
@@ -87,14 +87,6 @@ app.use("/api/v1/application", ApplicationRoute);
 // app.use("/v1/digitization", DigitizationRoute);
 // app.use("/v1/admin", AdminRoute);
 //!
-
-// app.use("/api/v1/user", LeaveRoute);
-// app.use("/api/v1/user", TrackingRoute);
-
-//LISTENER
-// app.listen(Number(process.env.PORT), `${process.env.HOST}`, () => {
-//   console.log(`Server started on host ${process.env.HOST} and port ${process.env.PORT}`);
-// });
 
 //LISTENER
 app.listen(Number(getEnv("PORT")), () => {

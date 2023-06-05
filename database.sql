@@ -5,7 +5,6 @@
 
 CREATE DATABASE digitization;
 
--- TODO: ApplicationAudit
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
