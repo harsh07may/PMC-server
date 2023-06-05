@@ -11,3 +11,6 @@
 [2023-06-02 12:43:43] [error]: relation "application" does not exist
 [2023-06-04 11:49:37] [error]: relation "application" does not exist
 [2023-06-04 12:06:09] [error]: Applications Not Found
+[2023-06-05 10:29:17] [error]: there is no parameter $1
+[2023-06-05 10:32:00] [error]: there is no parameter $1
+[2023-06-05 10:32:21] [error]: there is no parameter $1
