@@ -529,6 +529,6 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     const filePath = document.rows[0].filelink;
     res.download(filePath);
   } catch (error: any) {
-    res.send({ error: `${error.message}` });
+    res.status(error.statusCode).send(error.message);
   }
 });

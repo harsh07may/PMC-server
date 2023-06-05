@@ -9,7 +9,7 @@ export async function fetchApplication(ref_id: string) {
       [ref_id]
     );
     return result;
-  } catch (error) {
+  } catch (error: any) {
     throw new InternalError("Internal Server Error");
   }
 }
@@ -20,20 +20,27 @@ export async function addNewApplication(ref_id: string, title: string) {
       [ref_id, title]
     );
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }
 
-export async function fetchTrailByStatus(dept: string, status: string) {
+export async function fetchTrailByStatus(reciever: string, status: string) {
   try {
     const result = await pool.query(
       "SELECT * FROM application_trail WHERE reciever iLIKE '%' || $1 || '%' AND status = $2",
-      [dept, status]
+      [reciever, status]
     );
     return result;
-  } catch (error) {
-    logger.log("error", error);
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }
@@ -49,7 +56,11 @@ export async function checkTrail(ref_id: string) {
       transfer_no = trail.rows[0].transfer_no + 1;
     }
     return transfer_no;
-  } catch (error) {
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }
@@ -66,7 +77,11 @@ export async function transferApplication(
       [ref_id, transfer_no, sender, reciever]
     );
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }
@@ -81,7 +96,11 @@ export async function updateApplicationTrailStatus(
       [status, trail_id]
     );
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }
@@ -92,7 +111,11 @@ export async function updateHolder(ref_id: string, holder: string) {
       [holder, ref_id]
     );
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
     throw new InternalError("Internal Server Error");
   }
 }

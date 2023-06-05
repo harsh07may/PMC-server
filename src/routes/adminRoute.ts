@@ -43,7 +43,7 @@ router.post(
       res.status(201).send(`Registered ${newUser}`);
     } catch (err: any) {
       logger.log("error", err);
-      res.status(err.statusCode).send({ err });
+      res.status(err.statusCode).send(err);
     }
   }
 );
@@ -77,7 +77,7 @@ router.post(
 
       return res.status(200).send(`Updated ${modifiedUser}`);
     } catch (err: any) {
-      res.status(err.statusCode).send({ err });
+      res.status(err.statusCode).send(err);
     }
   }
 );
@@ -89,7 +89,7 @@ router.get(
     try {
       if (!checkPerms(req.User.perms, "admin", "admin")) {
         const error = new AccessDeniedError("Insufficient Permissions");
-        return res.status(error.statusCode).send({ error });
+        return res.status(error.statusCode).send(error);
       }
       const page = Number(req.query.page) || 1;
       const limit = 10;
