@@ -5,7 +5,7 @@
 
 CREATE DATABASE digitization;
 
--- TODO: Remove fullname
+-- TODO: ApplicationAudit
 CREATE TABLE users(
     user_id SERIAL PRIMARY KEY,
     username TEXT NOT NULL,
