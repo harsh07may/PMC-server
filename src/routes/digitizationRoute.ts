@@ -7,6 +7,7 @@ import {
   AccessDeniedError,
   ResourceNotFoundError,
   InternalError,
+  BadRequestError,
 } from "../models/errors";
 import { logger } from "../utils/logger";
 import { checkPerms } from "../services/adminService";
@@ -199,6 +200,12 @@ router.post(
           );
           throw new InternalError("Internal Server Error");
         }
+      } else {
+        logger.log(
+          "error",
+          `Invalid document Type.User ID:${UserName} tried to access document that does not exist.`
+        );
+        throw new BadRequestError("Invalid ResourceType");
       }
 
       res.json(newContent.rows[0]);
@@ -347,6 +354,12 @@ router.get("/search", authMiddleware, async (req, res) => {
         );
         throw new InternalError("Internal Server Error");
       }
+    } else {
+      logger.log(
+        "error",
+        `Invalid Document Type.User ID:${UserName} tried to access non-existent document type.`
+      );
+      throw new BadRequestError("Invalid ResourceType");
     }
     if (document.rowCount === 0) {
       throw new ResourceNotFoundError("File Not Found");
@@ -490,6 +503,12 @@ router.get("/file-download", authMiddleware, async (req, res) => {
         );
         throw new InternalError("Internal Server Error");
       }
+    } else {
+      logger.log(
+        "error",
+        `Invalid document Type.User ID:${username} tried to access document that does not exist.`
+      );
+      throw new BadRequestError("Invalid ResourceType");
     }
 
     if (document.rowCount === 0) throw new Error("File not found");
