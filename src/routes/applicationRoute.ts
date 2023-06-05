@@ -29,10 +29,10 @@ router.get("/getall", async (req: Request, res: Response) => {
 
 router.get("/getPending", async (req: Request, res: Response) => {
   try {
-    const { dept } = req.query;
-    const Department = dept ? String(dept) : "";
+    const { reciever } = req.query;
+    const Reciever = reciever ? String(reciever) : "";
 
-    const pending = await fetchTrailByStatus(Department, "unseen");
+    const pending = await fetchTrailByStatus(Reciever, "unseen");
     res.send(pending.rows);
   } catch (err: any) {
     logger.log("error", err);
