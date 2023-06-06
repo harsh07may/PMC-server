@@ -42,7 +42,7 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     const perms = await pool.query(
-      "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records from permissions WHERE user_id = $1",
+      "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking from permissions WHERE user_id = $1",
       [user.rows[0].user_id]
     );
     if (perms.rowCount == 0) {
@@ -137,7 +137,7 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
 
     try {
       const perms = await pool.query(
-        "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records from permissions WHERE user_id = $1",
+        "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking from permissions WHERE user_id = $1",
         [user.rows[0].user_id]
       );
 

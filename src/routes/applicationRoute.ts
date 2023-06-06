@@ -116,7 +116,8 @@ router.post("/transferApplication", async (req: Request, res: Response) => {
 //ACCEPT/REJECT AN APPLICATION
 router.post("/updateStatus", async (req: Request, res: Response) => {
   try {
-    // Check if holder of file with the recieved ref_id is the one trying to update its status
+    // TODO: Check if holder of file with the recieved ref_id is the one trying to update its status
+    // TODO: Check if application_trail is unseen first only then allow to change status
     const { trail_id, status } = req.body;
 
     if (status == "accepted") {

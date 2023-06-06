@@ -23,6 +23,7 @@ CREATE TABLE permissions (
     construction_license_records TEXT DEFAULT 'deny',
     house_tax_records TEXT DEFAULT 'deny',
     trade_license_records TEXT DEFAULT 'deny',
+    application_tracking TEXT DEFAULT 'deny',
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -136,6 +137,11 @@ CREATE TYPE leave_application_status AS ENUM (
     'manager-approved',
     'hod-approved'
 );
+
+ALTER TABLE
+    permissions
+ADD
+    COLUMN application_tracking TEXT DEFAULT 'deny';
 
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
 

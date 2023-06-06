@@ -8,6 +8,7 @@ import {
   addAuditLog,
   addNewUserToDB,
   updateUser,
+  getUser,
 } from "../services/adminService";
 import { checkPerms } from "../services/userService";
 import { logger } from "../utils/logger";
@@ -123,15 +124,13 @@ router.get("/get-user", authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { username } = req.query;
-    const user = await fetchUser(username?.toString() ?? "");
+    const user = await getUser(username?.toString() ?? "");
     if (user.rows.length === 0) {
       return res.status(404).send("User not Found");
     }
 
     if (user.rowCount === 0) return res.status(404).send("User not found");
-    res.json({
-      rows: user.rows,
-    });
+    res.send(user.rows[0]);
   } catch (error: any) {
     return res.status(404).send({ error: `${error.message}` });
   }

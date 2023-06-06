@@ -14,10 +14,44 @@ export enum ROLES {
 //SERVICES
 export async function fetchUser(username: string) {
   try {
+    const result = await pool.query("SELECT * FROM users WHERE username = $1", [
+      username,
+    ]);
+    return result;
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+export async function getUser(username: string) {
+  try {
     const result = await pool.query(
-      "SELECT user_id,username,fullname,password FROM users WHERE username = $1",
+      "SELECT user_id,username,fullname FROM users WHERE username = $1",
       [username]
     );
+    const perms = await pool.query(
+      "SELECT * FROM permissions WHERE user_id = $1",
+      [result.rows[0].user_id]
+    );
+    if (result.rows.length > 0) {
+      result.rows[0] = {
+        ...result.rows[0],
+        perms: {
+          municipality_property_records:
+            perms.rows[0].municipality_property_records,
+          birth_records: perms.rows[0].birth_records,
+          death_records: perms.rows[0].death_records,
+          construction_license_records:
+            perms.rows[0].construction_license_records,
+          house_tax_records: perms.rows[0].house_tax_records,
+          trade_license_records: perms.rows[0].trade_license_records,
+          application_tracking: perms.rows[0].application_tracking,
+        },
+      };
+    }
     return result;
   } catch (error: any) {
     logger.log(
@@ -44,6 +78,7 @@ export async function addNewUserToDB({
       construction_license_records,
       house_tax_records,
       trade_license_records,
+      application_tracking,
     } = perms;
     const user = await pool.query(
       "INSERT INTO users (username,fullname,password,timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
@@ -51,7 +86,7 @@ export async function addNewUserToDB({
     );
     const { user_id } = user.rows[0];
     const result = await pool.query(
-      "INSERT INTO permissions (user_id,admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+      "INSERT INTO permissions (user_id,admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
       [
         user_id,
         admin,
@@ -61,6 +96,7 @@ export async function addNewUserToDB({
         construction_license_records,
         house_tax_records,
         trade_license_records,
+        application_tracking,
       ]
     );
     return result;
@@ -131,11 +167,12 @@ export async function updateUser({
       construction_license_records,
       house_tax_records,
       trade_license_records,
+      application_tracking,
     } = perms;
 
     const { user_id } = user.rows[0];
     return pool.query(
-      "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8 WHERE user_id = $1 RETURNING *",
+      "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8,application_tracking=$9 WHERE user_id = $1 RETURNING *",
       [
         user_id,
         admin,
@@ -145,6 +182,7 @@ export async function updateUser({
         construction_license_records,
         house_tax_records,
         trade_license_records,
+        application_tracking,
       ]
     );
   } catch (error: any) {

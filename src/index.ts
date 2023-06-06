@@ -72,6 +72,7 @@ pool.on("connect", async (client: Client) => {
         construction_license_records: "editor",
         house_tax_records: "editor",
         trade_license_records: "editor",
+        application_tracking: "deny",
       },
     });
   }
