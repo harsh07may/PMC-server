@@ -2,7 +2,7 @@ import { pool } from "../utils/db";
 import { InternalError } from "../models/errors";
 import { logger } from "../utils/logger";
 
-export async function fetchApplication(ref_id: string) {
+export async function fetchApplicationById(ref_id: string) {
   try {
     const result = await pool.query(
       "SELECT * FROM application WHERE ref_id iLIKE '%' || $1 || '%'",
@@ -10,6 +10,30 @@ export async function fetchApplication(ref_id: string) {
     );
     return result;
   } catch (error: any) {
+    throw new InternalError("Internal Server Error");
+  }
+}
+
+export async function searchApplications(
+  ref_id: string,
+  title: string,
+  holder: string,
+  sender: string,
+  receiver: string,
+  status: string
+) {
+  try {
+    //!major flaw: cannot show applications that have not been transferred yet since ref_id is used for JOIN
+    //! FIX: Split search for untranferred applications and transferred applications
+    // TODO Split up Application, application_trail
+    const result = await pool.query(
+      "SELECT * FROM application a,application_trail at WHERE a.ref_id = at.ref_id AND a.ref_id iLIKE '%' || $1 || '%' AND a.title iLIKE '%' || $2 || '%' AND a.holder iLIKE '%' || $3 || '%'",
+      [ref_id, title, holder]
+    );
+
+    return result;
+  } catch (error: any) {
+    logger.log("error", error);
     throw new InternalError("Internal Server Error");
   }
 }
@@ -29,11 +53,11 @@ export async function addNewApplication(ref_id: string, title: string) {
   }
 }
 
-export async function fetchTrailByStatus(reciever: string, status: string) {
+export async function fetchTrailByStatus(receiver: string, status: string) {
   try {
     const result = await pool.query(
-      "SELECT * FROM application_trail WHERE reciever iLIKE '%' || $1 || '%' AND status = $2",
-      [reciever, status]
+      "SELECT * FROM application_trail WHERE receiver iLIKE '%' || $1 || '%' AND status = $2",
+      [receiver, status]
     );
     return result;
   } catch (error: any) {
@@ -69,12 +93,12 @@ export async function transferApplication(
   ref_id: string,
   transfer_no: number,
   sender: string,
-  reciever: string
+  receiver: string
 ) {
   try {
     const result = await pool.query(
-      "INSERT INTO application_trail(ref_id,transfer_no,transfer_time,sender,reciever) VALUES ($1,$2,(SELECT CURRENT_TIMESTAMP(0)::timestamp),$3,$4) RETURNING *",
-      [ref_id, transfer_no, sender, reciever]
+      "INSERT INTO application_trail(ref_id,transfer_no,transfer_time,sender,receiver) VALUES ($1,$2,(SELECT CURRENT_TIMESTAMP(0)::timestamp),$3,$4) RETURNING *",
+      [ref_id, transfer_no, sender, receiver]
     );
     return result;
   } catch (error: any) {
