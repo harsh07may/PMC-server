@@ -40,6 +40,7 @@ export async function getUser(username: string) {
       result.rows[0] = {
         ...result.rows[0],
         perms: {
+          admin: perms.rows[0].admin,
           municipality_property_records:
             perms.rows[0].municipality_property_records,
           birth_records: perms.rows[0].birth_records,
