@@ -9,9 +9,14 @@ import {
   transferApplication,
   updateApplicationTrailStatus,
   updateHolder,
+  checkInValidTransfer,
 } from "../services/applicationService";
 
-import { BadRequestError, ResourceNotFoundError } from "../models/errors";
+import {
+  AccessDeniedError,
+  BadRequestError,
+  ResourceNotFoundError,
+} from "../models/errors";
 import { logger } from "../utils/logger";
 import { authMiddleware } from "../authMiddleware";
 
@@ -27,6 +32,8 @@ import { authMiddleware } from "../authMiddleware";
 //     res.status(err.statusCode).send(err);
 //   }
 // });
+
+//1. Search Application with ref_id, title, holder, sender, receiver, status
 router.get("/searchApplication", async (req: Request, res: Response) => {
   try {
     const { ref_id, title, holder, sender, receiver, status } = req.query;
@@ -54,64 +61,92 @@ router.get("/searchApplication", async (req: Request, res: Response) => {
     res.status(err.statusCode).send(err);
   }
 });
-
-router.get("/getPending", async (req: Request, res: Response) => {
-  try {
-    const { receiver } = req.query;
-    const Receiver = receiver ? String(receiver) : "";
-
-    const pending = await fetchTrailByStatus(Receiver, "unseen");
-    // TODO: Send trail_id,title, ref_id, sender,time
-    res.send(pending.rows);
-  } catch (err: any) {
-    logger.log("error", err);
-    res.status(err.statusCode).send(err);
-  }
-});
-
-router.post("/createApplication", async (req: Request, res: Response) => {
-  try {
-    const { ref_id, title } = req.body;
-    const application = await fetchApplicationById(ref_id);
-    if (application.rows.length > 0) {
-      logger.log("error", `Application with reference No. already exists.`);
-      throw new BadRequestError(
-        `Application with reference no.  ${ref_id} already exists.`
-      );
+//2. Create Application with ref_id, title,notes
+router.post(
+  "/createApplication",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      if (req.User.perms.application_tracking != "central") {
+        throw new AccessDeniedError("Insufficient Permissions");
+      }
+      var { ref_id, title, notes } = req.body;
+      notes = notes ? notes : "Do not delete note";
+      const application = await fetchApplicationById(ref_id);
+      if (application.rows.length > 0) {
+        logger.log("error", `Application with reference No. already exists.`);
+        throw new BadRequestError(
+          `Application with reference no.  ${ref_id} already exists.`
+        );
+      }
+      await addNewApplication(ref_id, title, notes);
+      res.send(`Successfully created Application with Reference No. ${ref_id}`);
+    } catch (err: any) {
+      res.status(err.statusCode).send(err);
     }
-    await addNewApplication(ref_id, title);
-    res.send(`Successfully created Application with Reference No. ${ref_id}`);
-  } catch (err: any) {
-    res.status(err.statusCode).send(err);
   }
-});
+);
+//3.Transfer an application with ref_id and reciever
+router.post(
+  "/transferApplication",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { ref_id, receiver } = req.body;
+      const application = await fetchApplicationById(ref_id);
+      if (application.rows.length == 0) {
+        logger.log(
+          "error",
+          `Application with reference No. ${ref_id} does not already exist.`
+        );
+        throw new BadRequestError(
+          `Application with reference no. ${ref_id} does not exist.`
+        );
+      }
+      if (req.User.perms.application_tracking != application.rows[0].holder) {
+        logger.log(
+          "error",
+          `User ${req.User.userName} tried to transfer an Unheld Application`
+        );
+        throw new AccessDeniedError(
+          "Insufficient perms to transfer this Application"
+        );
+      }
+      if (
+        await checkInValidTransfer(ref_id, req.User.perms.application_tracking)
+      ) {
+        throw new BadRequestError("Cannot transfer Application in transit");
+      }
 
-router.post("/transferApplication", async (req: Request, res: Response) => {
-  try {
-    const { ref_id, receiver } = req.body;
-    console.log(req.body);
-    const application = await fetchApplicationById(ref_id);
-    if (application.rows.length == 0) {
-      logger.log(
-        "error",
-        `Application with reference No. ${ref_id} does not already exist.`
+      const transfer_no = await checkTrail(ref_id);
+      await transferApplication(
+        ref_id,
+        transfer_no,
+        application.rows[0].holder,
+        receiver
       );
-      throw new BadRequestError(
-        `Application with reference no. ${ref_id} does not exist.`
-      );
+      res.send(`Application ${ref_id} transferred to ${receiver}`);
+    } catch (err: any) {
+      res.status(err.statusCode).send(err);
     }
-    const transfer_no = await checkTrail(ref_id);
-    await transferApplication(
-      ref_id,
-      transfer_no,
-      application.rows[0].holder,
-      receiver
-    );
-    res.send(`Application ${ref_id} transferred to ${receiver}`);
-  } catch (err: any) {
-    res.status(err.statusCode).send(err);
   }
-});
+);
+//4. Get the pending/useen applications for a dept/perm.
+router.get(
+  "/getPending",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const receiver = req.User.perms.application_tracking;
+      const pending = await fetchTrailByStatus(receiver, "unseen");
+
+      res.send(pending.rows);
+    } catch (err: any) {
+      logger.log("error", err);
+      res.status(err.statusCode).send(err);
+    }
+  }
+);
 
 //ACCEPT/REJECT AN APPLICATION
 router.post("/updateStatus", async (req: Request, res: Response) => {
@@ -135,5 +170,21 @@ router.post("/updateStatus", async (req: Request, res: Response) => {
     res.send("Successfully Updated");
   } catch (err: any) {
     res.status(err.statusCode).send(err);
+  }
+});
+// TODO: /UpdateNotes in app table
+router.post("/updateApplicationNote", async (req: Request, res: Response) => {
+  try {
+  } catch (err: any) {
+    // Handle error here
+  }
+});
+
+//TODO: For any currently held file, get all senders and recievers
+router.get("/getHoldingFiles", async (req: Request, res: Response) => {
+  try {
+    // Handle GET request logic here
+  } catch (err: any) {
+    // Handle error here
   }
 });

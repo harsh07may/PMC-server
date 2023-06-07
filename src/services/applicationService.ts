@@ -5,7 +5,7 @@ import { logger } from "../utils/logger";
 export async function fetchApplicationById(ref_id: string) {
   try {
     const result = await pool.query(
-      "SELECT * FROM application WHERE ref_id iLIKE '%' || $1 || '%'",
+      "SELECT * FROM application WHERE ref_id = $1",
       [ref_id]
     );
     return result;
@@ -37,11 +37,15 @@ export async function searchApplications(
     throw new InternalError("Internal Server Error");
   }
 }
-export async function addNewApplication(ref_id: string, title: string) {
+export async function addNewApplication(
+  ref_id: string,
+  title: string,
+  notes: string
+) {
   try {
     const result = await pool.query(
-      "INSERT INTO application(ref_id,title) VALUES ($1,$2) RETURNING *",
-      [ref_id, title]
+      "INSERT INTO application(ref_id,title,notes) VALUES ($1,$2,$3) RETURNING *",
+      [ref_id, title, notes]
     );
     return result;
   } catch (error: any) {
@@ -55,8 +59,9 @@ export async function addNewApplication(ref_id: string, title: string) {
 
 export async function fetchTrailByStatus(receiver: string, status: string) {
   try {
+    // TODO: Send trail_id,title, ref_id, sender,time
     const result = await pool.query(
-      "SELECT * FROM application_trail WHERE receiver iLIKE '%' || $1 || '%' AND status = $2",
+      "SELECT at.trail_id,at.ref_id,at.transfer_time,at.sender,a.title FROM application_trail at,application a WHERE at.ref_id=a.ref_id AND at.receiver iLIKE '%' || $1 || '%' AND at.status = $2",
       [receiver, status]
     );
     return result;
@@ -101,6 +106,28 @@ export async function transferApplication(
       [ref_id, transfer_no, sender, receiver]
     );
     return result;
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+export async function checkInValidTransfer(ref_id: string, sender: string) {
+  try {
+    const trail = await pool.query(
+      "SELECT * FROM application_trail WHERE ref_id = $1 AND sender=$2 ORDER BY trail_id desc",
+      [ref_id, sender]
+    );
+    if (trail.rowCount == 0) {
+      return false;
+    }
+    const { status } = trail.rows[0];
+    if (status === "unseen") {
+      return true;
+    }
+    return false;
   } catch (error: any) {
     logger.log(
       "error",

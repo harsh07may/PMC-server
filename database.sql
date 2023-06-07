@@ -164,8 +164,13 @@ CREATE TABLE application(
     title TEXT NOT NULL,
     created_at DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     outwarded BOOLEAN DEFAULT false,
-    holder TEXT NOT NULL DEFAULT 'Central Inward'
+    holder TEXT NOT NULL DEFAULT 'central',
+    notes TEXT NOT NULL DEFAULT 'Do not delete this note'
 );
+ALTER TABLE
+    application
+ADD
+    COLUMN notes TEXT DEFAULT 'Do not delete this note';
 
 CREATE TYPE application_status AS ENUM ('unseen', 'accepted', 'rejected');
 
