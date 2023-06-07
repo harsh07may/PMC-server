@@ -10,6 +10,8 @@ import {
   updateApplicationTrailStatus,
   updateHolder,
   checkInValidTransfer,
+  fetchTrailById,
+  getHoldingFiles,
 } from "../services/applicationService";
 
 import {
@@ -93,6 +95,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { ref_id, receiver } = req.body;
+
       const application = await fetchApplicationById(ref_id);
       if (application.rows.length == 0) {
         logger.log(
@@ -148,30 +151,54 @@ router.get(
   }
 );
 
-//ACCEPT/REJECT AN APPLICATION
-router.post("/updateStatus", async (req: Request, res: Response) => {
-  try {
-    // TODO: Check if holder of file with the recieved ref_id is the one trying to update its status
-    // TODO: Check if application_trail is unseen first only then allow to change status
-    const { trail_id, status } = req.body;
+//5. ACCEPT/REJECT AN APPLICATION
+router.post(
+  "/updateStatus",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { trail_id, status } = req.body;
 
-    if (status == "accepted") {
-      const application = await updateApplicationTrailStatus(trail_id, status);
+      // TODO: Check if application_trail is unseen first only then allow to change status
+      const trail = await fetchTrailById(trail_id);
+      if (trail.rows[0].status !== "unseen") {
+        logger.log(
+          "error",
+          "Failed to Update Application Status.User tried accept/reject an application that was already seen."
+        );
+        throw new BadRequestError("Unable to Accept/Reject seen Application");
+      }
 
-      const ref_id = application.rows[0].ref_id;
-      const holder = application.rows[0].receiver;
-      await updateHolder(ref_id, holder);
-    } else if (status == "rejected") {
-      await updateApplicationTrailStatus(trail_id, status);
-    } else {
-      logger.log("error", "Invalid Status. Expected accepted/rejected");
-      throw new BadRequestError("Invalid Status. Expected accepted/rejected");
+      // TODO: Check if holder of file with the recieved ref_id is the one trying to update its status
+      const currentApplication = await fetchApplicationById(
+        trail.rows[0].ref_id
+      );
+      if (currentApplication.rows[0].holder != req.User.application_tracking) {
+        throw new AccessDeniedError(
+          "Insufficient perms to transfer this Application"
+        );
+      }
+      if (status == "accepted") {
+        const application = await updateApplicationTrailStatus(
+          trail_id,
+          status
+        );
+
+        const ref_id = application.rows[0].ref_id;
+        const holder = application.rows[0].receiver;
+        await updateHolder(ref_id, holder);
+      } else if (status == "rejected") {
+        await updateApplicationTrailStatus(trail_id, status);
+      } else {
+        logger.log("error", "Invalid Status. Expected accepted/rejected");
+        throw new BadRequestError("Invalid Status. Expected accepted/rejected");
+      }
+      res.send("Successfully Updated");
+    } catch (err: any) {
+      res.status(err.statusCode).send(err);
     }
-    res.send("Successfully Updated");
-  } catch (err: any) {
-    res.status(err.statusCode).send(err);
   }
-});
+);
 // TODO: /UpdateNotes in app table
 router.post("/updateApplicationNote", async (req: Request, res: Response) => {
   try {
@@ -180,11 +207,15 @@ router.post("/updateApplicationNote", async (req: Request, res: Response) => {
   }
 });
 
-//TODO: For any currently held file, get all senders and recievers
-router.get("/getHoldingFiles", async (req: Request, res: Response) => {
-  try {
-    // Handle GET request logic here
-  } catch (err: any) {
-    // Handle error here
+router.get(
+  "/getHoldingFiles",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const application = await getHoldingFiles(req.User.application_tracking);
+      return application;
+    } catch (err: any) {
+      // Handle error here
+    }
   }
-});
+);

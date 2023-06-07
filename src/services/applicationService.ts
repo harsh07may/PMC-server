@@ -27,7 +27,7 @@ export async function searchApplications(
     //! FIX: Split search for untranferred applications and transferred applications
     // TODO Split up Application, application_trail
     const result = await pool.query(
-      "SELECT * FROM application a,application_trail at WHERE a.ref_id = at.ref_id AND a.ref_id iLIKE '%' || $1 || '%' AND a.title iLIKE '%' || $2 || '%' AND a.holder iLIKE '%' || $3 || '%'",
+      "SELECT * FROM application WHERE ref_id iLIKE '%' || $1 || '%' AND title iLIKE '%' || $2 || '%' AND holder iLIKE '%' || $3 || '%'",
       [ref_id, title, holder]
     );
 
@@ -47,6 +47,7 @@ export async function addNewApplication(
       "INSERT INTO application(ref_id,title,notes) VALUES ($1,$2,$3) RETURNING *",
       [ref_id, title, notes]
     );
+
     return result;
   } catch (error: any) {
     logger.log(
@@ -137,6 +138,22 @@ export async function checkInValidTransfer(ref_id: string, sender: string) {
   }
 }
 
+export async function fetchTrailById(trail_id: number) {
+  try {
+    const trail = await pool.query(
+      "SELECT * FROM application_trail WHERE trail_id =$1",
+      [trail_id]
+    );
+    return trail;
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+
 export async function updateApplicationTrailStatus(
   trail_id: number,
   status: string
@@ -161,6 +178,22 @@ export async function updateHolder(ref_id: string, holder: string) {
       "UPDATE application SET holder = $1 WHERE ref_id = $2 RETURNING *",
       [holder, ref_id]
     );
+    return result;
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+
+export async function getHoldingFiles(sender: string) {
+  try {
+    const result = await pool.query(
+      "SELECT a.*, a.holder, tt.sender AS sent_by, t.receiver AS sending_to, t.status FROM application a LEFT JOIN application_trail t ON t.ref_id = a.ref_id and t.sender = $1 and t.status IN ('unseen', 'rejected') LEFT JOIN (SELECT x.* FROM application_trail x JOIN ( SELECT ref_id, MAX(transfer_no) AS max_transfer_no FROM application_trail WHERE status = 'accepted' GROUP BY ref_id) y ON x.ref_id = y.ref_id and x.transfer_no = y.max_transfer_no) tt ON tt.ref_id = a.ref_id and tt.receiver = $1 WHERE holder = $1"
+    );
+
     return result;
   } catch (error: any) {
     logger.log(
