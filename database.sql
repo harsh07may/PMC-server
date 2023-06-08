@@ -165,13 +165,12 @@ CREATE TABLE application(
     created_at DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     outwarded BOOLEAN DEFAULT false,
     holder TEXT NOT NULL DEFAULT 'central',
-    notes TEXT NOT NULL DEFAULT 'Do not delete this note'
+    notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
 );
 
 ALTER TABLE
     application
-ADD
-    COLUMN notes TEXT DEFAULT 'Do not delete this note';
+ALTER notes TEXT DEFAULT "**PLEASE DON'T CLEAR PREVIOUS NOTES**" ;
 
 CREATE TYPE application_status AS ENUM ('unseen', 'accepted', 'rejected');
 
