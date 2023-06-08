@@ -22,19 +22,6 @@ import {
 import { logger } from "../utils/logger";
 import { authMiddleware } from "../authMiddleware";
 
-// router.get("/getall", async (req: Request, res: Response) => {
-//   try {
-//     const allContent = await fetchApplication("", "", "", "", "", "");
-//     if (allContent.rows == 0) {
-//       throw new ResourceNotFoundError("Applications Not Found");
-//     }
-//     res.json(allContent.rows);
-//   } catch (err: any) {
-//     logger.log("error", err);
-//     res.status(err.statusCode).send(err);
-//   }
-// });
-
 //1. Search Application with ref_id, title, holder, sender, receiver, status
 router.get("/searchApplication", async (req: Request, res: Response) => {
   try {
@@ -72,8 +59,8 @@ router.post(
       if (req.User.perms.application_tracking != "central") {
         throw new AccessDeniedError("Insufficient Permissions");
       }
-      var { ref_id, title, notes } = req.body;
-      notes = notes ? notes : "Do not delete note";
+      var { ref_id, title } = req.body;
+
       const application = await fetchApplicationById(ref_id);
       if (application.rows.length > 0) {
         logger.log("error", `Application with reference No. already exists.`);
@@ -81,7 +68,9 @@ router.post(
           `Application with reference no.  ${ref_id} already exists.`
         );
       }
-      await addNewApplication(ref_id, title, notes);
+      await addNewApplication(ref_id, title);
+      const transfer_no = await checkTrail(ref_id);
+      await transferApplication(ref_id, transfer_no, "none", "central");
       res.send(`Successfully created Application with Reference No. ${ref_id}`);
     } catch (err: any) {
       res.status(err.statusCode).send(err);
@@ -106,13 +95,20 @@ router.post(
           `Application with reference no. ${ref_id} does not exist.`
         );
       }
+      if (application.rows[0].outwarded) {
+        logger.log(
+          "error",
+          `Application with reference No. ${ref_id} already outwarded.`
+        );
+        throw new BadRequestError(`Cannot transfer outwarded Application.`);
+      }
       if (req.User.perms.application_tracking != application.rows[0].holder) {
         logger.log(
           "error",
           `User ${req.User.userName} tried to transfer an Unheld Application`
         );
         throw new AccessDeniedError(
-          "Insufficient perms to transfer this Application"
+          "Insufficient Permissions to transfer this Application"
         );
       }
       if (
@@ -159,7 +155,7 @@ router.post(
     try {
       const { trail_id, status } = req.body;
 
-      // TODO: Check if application_trail is unseen first only then allow to change status
+      //Check if application_trail is unseen only then allow change status
       const trail = await fetchTrailById(trail_id);
       if (trail.rows[0].status !== "unseen") {
         logger.log(
@@ -169,13 +165,15 @@ router.post(
         throw new BadRequestError("Unable to Accept/Reject seen Application");
       }
 
-      // TODO: Check if holder of file with the recieved ref_id is the one trying to update its status
+      //Check if holder of file is the one trying to update its status
       const currentApplication = await fetchApplicationById(
         trail.rows[0].ref_id
       );
-      if (currentApplication.rows[0].holder != req.User.application_tracking) {
+      if (
+        currentApplication.rows[0].reciever != req.User.application_tracking
+      ) {
         throw new AccessDeniedError(
-          "Insufficient perms to transfer this Application"
+          "Insufficient Permissions to transfer this Application"
         );
       }
       if (status == "accepted") {
@@ -200,12 +198,16 @@ router.post(
   }
 );
 // TODO: /UpdateNotes in app table
-router.post("/updateApplicationNote", async (req: Request, res: Response) => {
-  try {
-  } catch (err: any) {
-    // Handle error here
+router.post(
+  "/updateApplicationNote",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+    } catch (err: any) {
+      // Handle error here
+    }
   }
-});
+);
 
 router.get(
   "/getHoldingFiles",
@@ -213,9 +215,9 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const application = await getHoldingFiles(req.User.application_tracking);
-      return application;
+      res.send(application.rows);
     } catch (err: any) {
-      // Handle error here
+      res.status(err.statusCode).send(err);
     }
   }
 );
