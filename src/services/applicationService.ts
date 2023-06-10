@@ -55,7 +55,7 @@ export async function fetchTrailByStatus(receiver: string, status: string) {
   try {
     // TODO: Send trail_id,title, ref_id, sender,time
     const result = await pool.query(
-      "SELECT at.trail_id,at.ref_id,at.transfer_no,at.transfer_time,at.sender,a.title FROM application_trail at,application a WHERE at.ref_id=a.ref_id AND at.receiver iLIKE '%' || $1 || '%' AND at.status = $2",
+      "SELECT a.ref_id, a.title, a.created_at, a.outwarded, a.holder AS sender, at.transfer_time FROM application a INNER JOIN application_trail at on at.ref_id=a.ref_id WHERE at.receiver = $1 and at.status = $2;",
       [receiver, status]
     );
     return result;

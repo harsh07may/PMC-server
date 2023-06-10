@@ -131,17 +131,17 @@ ADD
 ALTER TABLE
     users DROP COLUMN designation;
 
-CREATE TYPE leave_application_status AS ENUM (
-    'pending',
-    'rejected',
-    'manager-approved',
-    'hod-approved'
-);
-
 ALTER TABLE
     permissions
 ADD
     COLUMN application_tracking TEXT DEFAULT 'deny';
+-- CREATE TYPE leave_application_status AS ENUM (
+--     'pending',
+--     'rejected',
+--     'manager-approved',
+--     'hod-approved'
+-- );
+
 
 CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
 
@@ -167,6 +167,7 @@ CREATE TABLE application(
     holder TEXT NOT NULL DEFAULT 'central',
     notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
 );
+
 ALTER TABLE
     application
 ALTER notes TEXT DEFAULT "**PLEASE DON'T CLEAR PREVIOUS NOTES**" ;
