@@ -162,7 +162,7 @@ TRUNCATE TABLE users RESTART IDENTITY;
 CREATE TABLE application(
     ref_id TEXT PRIMARY KEY NOT NULL,
     title TEXT NOT NULL,
-    created_at DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     outwarded BOOLEAN DEFAULT false,
     holder TEXT NOT NULL DEFAULT 'central',
     notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
@@ -177,7 +177,7 @@ CREATE TABLE application_trail(
     trail_id SERIAL PRIMARY KEY,
     ref_id TEXT NOT NULL REFERENCES application(ref_id),
     transfer_no INT NOT NULL,
-    transfer_time DATE NOT NULL,
+    transfer_time timestamp NOT NULL,
     sender TEXT NOT NULL,
     receiver TEXT NOT NULL,
     status application_status NOT NULL DEFAULT 'unseen'

@@ -199,12 +199,17 @@ router.post(
 );
 // TODO: /UpdateNotes in app table
 router.post(
-  "/updateApplicationNote",
+  "/OutwardApplication",
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
+      const { ref_id } = req.body;
+      const application = await fetchApplicationById(ref_id);
+      if (application.rows[0].holder != "central") {
+        throw new AccessDeniedError("Cannot outward unheld application");
+      }
     } catch (err: any) {
-      // Handle error here
+      res.status(err.statusCode).send(err);
     }
   }
 );
