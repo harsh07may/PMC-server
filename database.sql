@@ -155,14 +155,15 @@ CREATE TABLE leave_applications(
     ctime DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL
-) -- DELETE ALL ENTRIES AND RESET ID
-TRUNCATE TABLE users RESTART IDENTITY;
+) 
+-- DELETE ALL ENTRIES AND RESET ID
+-- TRUNCATE TABLE users RESTART IDENTITY;
 
 -- APPLICATION TRACKING
 CREATE TABLE application(
     ref_id TEXT PRIMARY KEY NOT NULL,
     title TEXT NOT NULL,
-    created_at DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TEXT DEFAULT LOCALTIMESTAMP(3) NOT NULL,
     outwarded BOOLEAN DEFAULT false,
     holder TEXT NOT NULL DEFAULT 'central',
     notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
@@ -176,10 +177,20 @@ CREATE TYPE application_status AS ENUM ('unseen', 'accepted', 'rejected');
 
 CREATE TABLE application_trail(
     trail_id SERIAL PRIMARY KEY,
-    ref_id TEXT NOT NULL REFERENCES application(ref_id),
+    ref_id TEXT NOT NULL REFERENCES application(ref_id) ON DELETE CASCADE,
     transfer_no INT NOT NULL,
-    transfer_time DATE NOT NULL,
+    transfer_time TEXT DEFAULT LOCALTIMESTAMP(3) NOT NULL,
     sender TEXT NOT NULL,
     receiver TEXT NOT NULL,
     status application_status NOT NULL DEFAULT 'unseen'
 );
+
+ALTER TABLE application_trail ADD FOREIGN KEY (ref_id) REFERENCES application(ref_id) ON DELETE CASCADE;
+
+ALTER TABLE application_trail
+ALTER COLUMN transfer_time TYPE TEXT USING transfer_time::TEXT,
+ALTER COLUMN transfer_time SET DEFAULT LOCALTIMESTAMP(3);
+
+ALTER TABLE application
+ALTER COLUMN created_at TYPE TEXT USING created_at::TEXT,
+ALTER COLUMN created_at SET DEFAULT LOCALTIMESTAMP(3);

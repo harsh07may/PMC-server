@@ -23,8 +23,7 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin: `http://${String(getEnv("HOST"))}:5173`,
-    // origin: `http://localhost:3050`, //! DOCKER
+    origin: `${getEnv("ORIGIN")}`,
     credentials: true,
     exposedHeaders: "content-disposition",
   })
@@ -38,8 +37,7 @@ app.get("/getall", async (req: Request, res: Response) => {
   try {
     const allContent = await pool.query("SELECT * from users");
     if (allContent.rows == 0) {
-      const err = new ResourceNotFoundError("Users Not Found");
-      res.status(err.statusCode).send({ error: err.message });
+      throw new ResourceNotFoundError("Users Not Found");
     }
     res.json(allContent.rows);
   } catch (err: any) {
@@ -55,26 +53,31 @@ pool.on("connect", async (client: Client) => {
   // escape if users > 0
   // console.log("connected to db");
   // else add default admin user
-  const doesUserExist = await client.query(
-    "SELECT EXISTS(SELECT 1 FROM users );"
-  );
-  if (!doesUserExist.rows[0].exists) {
-    // console.log(doesUserExist.rows[0].exists);
-    await addNewUserToDB({
-      username: "admin",
-      fullname: "admin",
-      password: "admin",
-      perms: {
-        admin: true,
-        municipality_property_records: "editor",
-        birth_records: "editor",
-        death_records: "editor",
-        construction_license_records: "editor",
-        house_tax_records: "editor",
-        trade_license_records: "editor",
-        application_tracking: "deny",
-      },
-    });
+  try {
+    const doesUserExist = await client.query(
+      "SELECT EXISTS(SELECT 1 FROM users );"
+    );
+    // console.log(doesUserExist);
+    if (!doesUserExist.rows[0].exists) {
+      // console.log(doesUserExist.rows[0].exists);
+      await addNewUserToDB({
+        username: "admin",
+        fullname: "admin",
+        password: "admin",
+        perms: {
+          admin: true,
+          municipality_property_records: "editor",
+          birth_records: "editor",
+          death_records: "editor",
+          construction_license_records: "editor",
+          house_tax_records: "editor",
+          trade_license_records: "editor",
+          application_tracking: "deny",
+        },
+      });
+    }
+  } catch (error) {
+    console.log(error);
   }
 });
 
@@ -87,6 +90,7 @@ app.use("/api/v1/application", ApplicationRoute);
 // app.use("/v1/user", AuthRoute);
 // app.use("/v1/digitization", DigitizationRoute);
 // app.use("/v1/admin", AdminRoute);
+// app.use("/v1/application", ApplicationRoute);
 //!
 
 //LISTENER
