@@ -135,7 +135,7 @@ export function checkPerms(
   resource: keyof Perms,
   accessLevel: string
 ): boolean {
-  if (perms["admin"] === true || perms[resource] == accessLevel) {
+  if (perms[resource] == accessLevel) {
     return true;
   } else if (perms[resource] == "viewer" && accessLevel == "editor") {
     return false;

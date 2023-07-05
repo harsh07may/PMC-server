@@ -17,7 +17,7 @@ import {
   transferNewApplication,
   OutwardApplication,
   appendNoteByRefId,
-  checkIfValidTransfer
+  checkIfValidTransfer,
 } from "../services/applicationService";
 
 import {
@@ -67,7 +67,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       //check for perms
-      if (req.User.perms.application_tracking != 'central') {
+      if (req.User.perms.application_tracking != "central") {
         logger.log(
           "error",
           `User ${req.User.userName} tried to create an Application while not being a central`
@@ -90,7 +90,10 @@ router.post(
       await addNewApplication(ref_id, title);
       const transfer_no = await checkTrail(ref_id);
       await transferNewApplication(ref_id, transfer_no, "none", "central");
-      await appendNoteByRefId(ref_id, String(req.User.perms.application_tracking + '>> '));
+      await appendNoteByRefId(
+        ref_id,
+        String(req.User.perms.application_tracking + ">> ")
+      );
       res.send(`Successfully created Application with Reference No. ${ref_id}`);
     } catch (err: any) {
       res.status(err.statusCode).send(err);
@@ -144,7 +147,10 @@ router.post(
         );
       }
       if (
-        !(await checkIfValidTransfer(ref_id, req.User.perms.application_tracking))
+        !(await checkIfValidTransfer(
+          ref_id,
+          req.User.perms.application_tracking
+        ))
       ) {
         throw new BadRequestError("Cannot transfer Application in transit");
       }
@@ -198,14 +204,12 @@ router.post(
       }
 
       //Check if sender/receiver of file is the one trying to update its status
-      // check if trail.sender == perms or if trail.receiver == perms 
+      // check if trail.sender == perms or if trail.receiver == perms
       // req.User.application_tracking
       //trail.rows[0].receiver == req.User.perms.application_tracking
 
       if (status == "accepted") {
-        if (
-          !(trail.rows[0].receiver == req.User.perms.application_tracking)
-        ) {
+        if (!(trail.rows[0].receiver == req.User.perms.application_tracking)) {
           throw new AccessDeniedError(
             "Insufficient Permissions to transfer this Application"
           );
@@ -219,11 +223,9 @@ router.post(
         const ref_id = application.rows[0].ref_id;
         const holder = application.rows[0].receiver;
         await updateHolder(ref_id, holder);
-        await appendNoteByRefId(ref_id, String(holder + '>> '));
+        await appendNoteByRefId(ref_id, String(holder + ">> "));
       } else if (status == "rejected") {
-        if (
-          !(trail.rows[0].receiver == req.User.perms.application_tracking)
-        ) {
+        if (!(trail.rows[0].receiver == req.User.perms.application_tracking)) {
           throw new AccessDeniedError(
             "Insufficient Permissions to transfer this Application"
           );
@@ -233,7 +235,6 @@ router.post(
           trail_id,
           status
         );
-
       } else if (status == "recall") {
         if (trail.rows[0].sender != req.User.perms.application_tracking) {
           throw new AccessDeniedError(
@@ -254,7 +255,7 @@ router.post(
 );
 
 router.post(
-  "/OutwardApplication",
+  "/updateApplication",
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
@@ -289,7 +290,10 @@ router.post(
       if (application.rowCount == 0) {
         throw new BadRequestError("Application not found");
       }
-      if (req.User.perms.application_tracking != 'central' || application.rows[0].holder != req.User.perms.application_tracking) {
+      if (
+        req.User.perms.application_tracking != "central" ||
+        application.rows[0].holder != req.User.perms.application_tracking
+      ) {
         throw new AccessDeniedError(
           "Insufficient Permissions to delete the application"
         );
@@ -297,9 +301,7 @@ router.post(
       //*check if only one trail exists
       const trail = await fetchTrailByRefId(ref_id);
       if (trail.rowCount > 1) {
-        throw new AccessDeniedError(
-          "Cannot delete this application"
-        );
+        throw new AccessDeniedError("Cannot delete this application");
       }
       //*delete app
       await DeleteApplication(ref_id);
@@ -322,7 +324,10 @@ router.post(
       if (application.rowCount == 0) {
         throw new BadRequestError("Application not found");
       }
-      if (req.User.perms.application_tracking != 'central' || application.rows[0].holder != req.User.perms.application_tracking) {
+      if (
+        req.User.perms.application_tracking != "central" ||
+        application.rows[0].holder != req.User.perms.application_tracking
+      ) {
         throw new AccessDeniedError(
           "Insufficient Permissions to delete the application"
         );
@@ -343,7 +348,9 @@ router.get(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const application = await getHoldingFiles(req.User.perms.application_tracking);
+      const application = await getHoldingFiles(
+        req.User.perms.application_tracking
+      );
       res.send(application.rows);
     } catch (err: any) {
       res.status(err.statusCode).send(err);
