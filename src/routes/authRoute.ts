@@ -106,7 +106,7 @@ router.post("/logout", (req: Request, res: Response) => {
 // 5. Generate token with refresh token
 router.post("/refresh_token", async (req: Request, res: Response) => {
   try {
-    //Check 1
+    //Check if RT exists
     const token = req.cookies.refreshtoken;
     if (!token) {
       logger.log(
@@ -116,7 +116,7 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
       return res.send({ accesstoken: "" });
     }
 
-    let payload: JwtPayload | null = null; //Check 2
+    let payload: JwtPayload | null = null; //Check if RT is valid
     try {
       payload = verify(
         token,
@@ -130,10 +130,11 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     const user = await pool.query("SELECT * from users WHERE user_id = $1", [
       payload.userId,
     ]);
+    //Check if RT is in db
     if (user.rowCount == 0 || user.rows[0].refresh_token !== token) {
       logger.log("error", `Failed to verify refresh token.Not Found in DB`);
       return res.send({ accesstoken: "" });
-    } //Check 3
+    }
 
     try {
       const perms = await pool.query(
@@ -147,16 +148,16 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
         user.rows[0].roles,
         perms.rows[0]
       );
-      const refreshtoken = createRefreshToken(
-        user.rows[0].user_id,
-        user.rows[0].username,
-        user.rows[0].roles
-      );
-      await pool.query(
-        "UPDATE users SET refresh_token = $1 WHERE user_id = $2",
-        [refreshtoken, payload.userId]
-      );
-      appendRefreshToken(res, refreshtoken);
+      // const refreshtoken = createRefreshToken(
+      //   user.rows[0].user_id,
+      //   user.rows[0].username,
+      //   user.rows[0].roles
+      // );
+      // await pool.query(
+      //   "UPDATE users SET refresh_token = $1 WHERE user_id = $2",
+      //   [refreshtoken, payload.userId]
+      // );
+      // appendRefreshToken(res, refreshtoken);
       return res.send(accesstoken);
     } catch (error: any) {
       logger.log(

@@ -254,7 +254,7 @@ router.post(
 );
 
 router.post(
-  "/OutwardApplication",
+  "/updateApplicationNote",
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
