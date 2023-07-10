@@ -8,6 +8,7 @@ import { router as AuthRoute } from "./routes/authRoute";
 import { router as DigitizationRoute } from "./routes/digitizationRoute";
 import { router as AdminRoute } from "./routes/adminRoute";
 import { router as ApplicationRoute } from "./routes/applicationRoute";
+import { router as LeaveRoute } from "./routes/leaveManagementRoute";
 import { Client } from "pg";
 import { addNewUserToDB } from "./services/adminService";
 import { getEnv } from "./utils/constants";
@@ -73,6 +74,7 @@ pool.on("connect", async (client: Client) => {
           house_tax_records: "editor",
           trade_license_records: "editor",
           application_tracking: "deny",
+          leave_management: "viewer"
         },
       });
     }
@@ -85,6 +87,7 @@ app.use("/api/v1/user", AuthRoute);
 app.use("/api/v1/digitization", DigitizationRoute);
 app.use("/api/v1/admin", AdminRoute);
 app.use("/api/v1/application", ApplicationRoute);
+app.use("/api/v1/leave", LeaveRoute);
 
 // ! DOCKER
 // app.use("/v1/user", AuthRoute);

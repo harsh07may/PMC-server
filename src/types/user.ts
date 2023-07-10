@@ -6,12 +6,8 @@ export type Perms = {
   construction_license_records: "editor" | "viewer" | "deny";
   house_tax_records: "editor" | "viewer" | "deny";
   trade_license_records: "editor" | "viewer" | "deny";
-  application_tracking:
-    | "technical"
-    | "central"
-    | "treasury"
-    | "administration"
-    | "deny";
+  leave_management: "editor" | "viewer" | "deny";
+  application_tracking: "technical" | "central" | "treasury" | "administration" | "deny";
 };
 
 export type User = {
