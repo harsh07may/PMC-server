@@ -50,6 +50,7 @@ export async function getUser(username: string) {
           house_tax_records: perms.rows[0].house_tax_records,
           trade_license_records: perms.rows[0].trade_license_records,
           application_tracking: perms.rows[0].application_tracking,
+          leave_management: perms.rows[0].leave_management,
         },
       };
     }
@@ -80,14 +81,15 @@ export async function addNewUserToDB({
       house_tax_records,
       trade_license_records,
       application_tracking,
+      leave_management,
     } = perms;
     const user = await pool.query(
-      "INSERT INTO users (username,fullname,password,timestamp) VALUES($1,$2,$3,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-      [username, fullname, hashedpassword]
+      "INSERT INTO users (username,fullname,password,timestamp) VALUES($1,$2,$3,$4) RETURNING *",
+      [username, fullname, hashedpassword, (new Date()).toISOString()]
     );
     const { user_id } = user.rows[0];
     const result = await pool.query(
-      "INSERT INTO permissions (user_id,admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
+      "INSERT INTO permissions (user_id,admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking, leave_management) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
       [
         user_id,
         admin,
@@ -98,6 +100,7 @@ export async function addNewUserToDB({
         house_tax_records,
         trade_license_records,
         application_tracking,
+        leave_management
       ]
     );
     return result;
@@ -117,8 +120,8 @@ export async function addAuditLog(
 ) {
   try {
     const result = await pool.query(
-      "INSERT INTO admin_auditlogs(timestamp,Action,description,performedBy) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),$1,$2,$3) RETURNING *",
-      [action, description, username]
+      "INSERT INTO admin_auditlogs (action, description, performedby, timestamp) VALUES ($1,$2,$3,$4) RETURNING *",
+      [action, description, username, (new Date()).toISOString()]
     );
     return result;
   } catch (error: any) {
@@ -137,8 +140,8 @@ export function checkPerms(
 ): boolean {
   if (perms[resource] == accessLevel) {
     return true;
-  } else if (perms[resource] == "viewer" && accessLevel == "editor") {
-    return false;
+    // } else if (perms[resource] == "viewer" && accessLevel == "editor") {
+    //   return false;
   } else if (perms[resource] == "editor" && accessLevel == "viewer") {
     return true;
   } else {
@@ -169,11 +172,12 @@ export async function updateUser({
       house_tax_records,
       trade_license_records,
       application_tracking,
+      leave_management
     } = perms;
 
     const { user_id } = user.rows[0];
     return pool.query(
-      "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8,application_tracking=$9 WHERE user_id = $1 RETURNING *",
+      "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8, application_tracking=$9, leave_management=$10 WHERE user_id = $1 RETURNING *",
       [
         user_id,
         admin,
@@ -184,6 +188,7 @@ export async function updateUser({
         house_tax_records,
         trade_license_records,
         application_tracking,
+        leave_management
       ]
     );
   } catch (error: any) {

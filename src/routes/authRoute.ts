@@ -42,7 +42,7 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     const perms = await pool.query(
-      "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking from permissions WHERE user_id = $1",
+      "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking,leave_management from permissions WHERE user_id = $1",
       [user.rows[0].user_id]
     );
     if (perms.rowCount == 0) {
@@ -65,8 +65,8 @@ router.post("/login", async (req: Request, res: Response) => {
     );
     try {
       await pool.query(
-        "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp),'login','login',$1)",
-        [username]
+        "INSERT INTO admin_auditlogs(timestamp,action,description,performedby) VALUES ($1,'login','login',$2)",
+        [(new Date()).toISOString(), username]
       );
       await pool.query(
         "UPDATE users SET refresh_token = $1 WHERE username = $2",
@@ -138,7 +138,7 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
 
     try {
       const perms = await pool.query(
-        "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking from permissions WHERE user_id = $1",
+        "SELECT admin,municipality_property_records,birth_records,death_records,construction_license_records,house_tax_records,trade_license_records,application_tracking,leave_management from permissions WHERE user_id = $1",
         [user.rows[0].user_id]
       );
 
