@@ -59,12 +59,12 @@ router.post(
 
         try {
           newContent = await pool.query(
-            "INSERT INTO municipal_records (surveyno,location,title,filelink, timestamp) VALUES($1,$2,$3,$4, (select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [surveyNo, location, title, FileLink]
+            "INSERT INTO municipal_records (surveyno,location,title,filelink, timestamp) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [surveyNo, location, title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, title, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, title, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -84,12 +84,12 @@ router.post(
         const { Month, Year, Title } = req.body;
         try {
           newContent = await pool.query(
-            "INSERT INTO birth_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [Month, Year, Title, FileLink]
+            "INSERT INTO birth_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [Month, Year, Title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -109,12 +109,12 @@ router.post(
         const { location, houseNo, title } = req.body;
         try {
           newContent = await pool.query(
-            "INSERT INTO housetax_records (location, houseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [location, houseNo, title, FileLink]
+            "INSERT INTO housetax_records (location, houseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+            [location, houseNo, title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, title, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, title, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -136,12 +136,12 @@ router.post(
         const { licenseNo, surveyNo, location, title } = req.body;
         try {
           newContent = await pool.query(
-            "INSERT INTO constructionlicense_records(licenseno, surveyno, location, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [licenseNo, surveyNo, location, title, FileLink]
+            "INSERT INTO constructionlicense_records(licenseno, surveyno, location, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+            [licenseNo, surveyNo, location, title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, title, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, title, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -161,12 +161,12 @@ router.post(
         const { location, licenseNo, title } = req.body;
         try {
           newContent = await pool.query(
-            "INSERT INTO tradelicense_records (location, licenseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [location, licenseNo, title, FileLink]
+            "INSERT INTO tradelicense_records (location, licenseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+            [location, licenseNo, title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, title, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, title, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -186,12 +186,12 @@ router.post(
         const { Month, Year, Title } = req.body;
         try {
           newContent = await pool.query(
-            "INSERT INTO death_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,(select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp)) RETURNING *",
-            [Month, Year, Title, FileLink]
+            "INSERT INTO death_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [Month, Year, Title, FileLink, (new Date()).toISOString()]
           );
           auditContent = await pool.query(
-            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-            [type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
+            "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+            [(new Date()).toISOString(), type, `${Month + "/" + Year + " " + Title}`, Action, UserName]
           );
         } catch (error: any) {
           logger.log(
@@ -514,8 +514,8 @@ router.get("/file-download", authMiddleware, async (req, res) => {
     if (document.rowCount === 0) throw new Error("File not found");
     try {
       auditContent = await pool.query(
-        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES((select to_char(now()::timestamp, 'DD-MM-YYYY HH:MI:SS AM') as timestamp), $1,$2,$3,$4) RETURNING *",
-        [type, document.rows[0].filelink, Action, username]
+        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+        [(new Date()).toISOString(), type, document.rows[0].title, Action, username]
       );
     } catch (error: any) {
       logger.log(
@@ -527,7 +527,7 @@ router.get("/file-download", authMiddleware, async (req, res) => {
 
     const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;
-    res.download(filePath);
+    res.download(filePath, `${document.rows[0].title}.pdf`);
   } catch (error: any) {
     res.status(error.statusCode).send(error.message);
   }
