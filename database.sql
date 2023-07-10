@@ -10,7 +10,7 @@ CREATE TABLE users(
     fullname TEXT NOT NULL,
     password TEXT NOT NULL,
     refresh_token TEXT,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE permissions (
@@ -24,6 +24,7 @@ CREATE TABLE permissions (
     house_tax_records TEXT DEFAULT 'deny',
     trade_license_records TEXT DEFAULT 'deny',
     application_tracking TEXT DEFAULT 'deny',
+    leave_management TEXT DEFAULT 'deny',
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -33,7 +34,7 @@ CREATE TABLE Municipal_Records(
     surveyNo TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE Birth_Records(
@@ -42,7 +43,7 @@ CREATE TABLE Birth_Records(
     year TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE HouseTax_Records(
@@ -51,7 +52,7 @@ CREATE TABLE HouseTax_Records(
     houseNo TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE ConstructionLicense_Records(
@@ -61,12 +62,12 @@ CREATE TABLE ConstructionLicense_Records(
     location TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE searchadd_auditlogs(
     logId SERIAL PRIMARY KEY,
-    timestamp TEXT NOT NULL,
+    timestamp timestamptz NOT NULL,
     documentType TEXT NOT NULL,
     resourceName TEXT NOT NULL,
     Action TEXT NOT NULL,
@@ -75,7 +76,7 @@ CREATE TABLE searchadd_auditlogs(
 
 CREATE TABLE admin_auditlogs(
     logId SERIAL PRIMARY KEY,
-    timestamp TEXT NOT NULL,
+    timestamp timestamptz NOT NULL,
     Action TEXT NOT NULL,
     description TEXT NOT NULL,
     performedBy TEXT NOT NULL
@@ -87,7 +88,7 @@ CREATE TABLE TradeLicense_Records(
     location TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 CREATE TABLE Death_Records(
@@ -96,7 +97,7 @@ CREATE TABLE Death_Records(
     year TEXT NOT NULL,
     title TEXT NOT NULL,
     fileLink TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp timestamptz NOT NULL
 );
 
 ALTER TABLE
@@ -135,6 +136,12 @@ ALTER TABLE
     permissions
 ADD
     COLUMN application_tracking TEXT DEFAULT 'deny';
+
+ALTER TABLE
+    permissions
+ADD
+    COLUMN leave_management TEXT DEFAULT 'deny';
+
 -- CREATE TYPE leave_application_status AS ENUM (
 --     'pending',
 --     'rejected',
@@ -143,19 +150,19 @@ ADD
 -- );
 
 
-CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
+-- CREATE TYPE leave_application_type AS ENUM ('medical', 'casual');
 
-CREATE TABLE leave_applications(
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(user_id),
-    manager_id INT NOT NULL REFERENCES users(user_id),
-    hod_id INT NOT NULL REFERENCES users(user_id),
-    status leave_application_status NOT null DEFAULT 'pending',
-    type leave_application_type NOT NULL,
-    ctime DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL
-) 
+-- CREATE TABLE leave_applications(
+--     id SERIAL PRIMARY KEY,
+--     user_id INT NOT NULL REFERENCES users(user_id),
+--     manager_id INT NOT NULL REFERENCES users(user_id),
+--     hod_id INT NOT NULL REFERENCES users(user_id),
+--     status leave_application_status NOT null DEFAULT 'pending',
+--     type leave_application_type NOT NULL,
+--     ctime DATE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+--     start_date DATE NOT NULL,
+--     end_date DATE NOT NULL
+-- ) 
 -- DELETE ALL ENTRIES AND RESET ID
 -- TRUNCATE TABLE users RESTART IDENTITY;
 
@@ -163,15 +170,15 @@ CREATE TABLE leave_applications(
 CREATE TABLE application(
     ref_id TEXT PRIMARY KEY NOT NULL,
     title TEXT NOT NULL,
-    created_at TEXT DEFAULT LOCALTIMESTAMP(3) NOT NULL,
+    created_at timestamptz NOT NULL, 
     outwarded BOOLEAN DEFAULT false,
     holder TEXT NOT NULL DEFAULT 'central',
     notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
 );
 
-ALTER TABLE
-    application
-ALTER notes TEXT DEFAULT "**PLEASE DON'T CLEAR PREVIOUS NOTES**" ;
+-- ALTER TABLE
+--     application
+-- ALTER notes TEXT DEFAULT "**PLEASE DON'T CLEAR PREVIOUS NOTES**" ;
 
 CREATE TYPE application_status AS ENUM ('unseen', 'accepted', 'rejected');
 
@@ -179,7 +186,7 @@ CREATE TABLE application_trail(
     trail_id SERIAL PRIMARY KEY,
     ref_id TEXT NOT NULL REFERENCES application(ref_id) ON DELETE CASCADE,
     transfer_no INT NOT NULL,
-    transfer_time TEXT DEFAULT LOCALTIMESTAMP(3) NOT NULL,
+    transfer_time timestamptz NOT NULL,
     sender TEXT NOT NULL,
     receiver TEXT NOT NULL,
     status application_status NOT NULL DEFAULT 'unseen'
@@ -187,10 +194,77 @@ CREATE TABLE application_trail(
 
 ALTER TABLE application_trail ADD FOREIGN KEY (ref_id) REFERENCES application(ref_id) ON DELETE CASCADE;
 
-ALTER TABLE application_trail
-ALTER COLUMN transfer_time TYPE TEXT USING transfer_time::TEXT,
-ALTER COLUMN transfer_time SET DEFAULT LOCALTIMESTAMP(3);
+-- ALTER TABLE application_trail
+-- ALTER COLUMN transfer_time TYPE timestamptz,
+-- ALTER COLUMN transfer_time SET DEFAULT LOCALTIMESTAMP(3);
 
-ALTER TABLE application
-ALTER COLUMN created_at TYPE TEXT USING created_at::TEXT,
-ALTER COLUMN created_at SET DEFAULT LOCALTIMESTAMP(3);
+-- ALTER TABLE application
+-- ALTER COLUMN created_at TYPE TEXT USING created_at::TEXT,
+-- ALTER COLUMN created_at SET DEFAULT LOCALTIMESTAMP(3);
+
+
+-- LEAVE MANAGEMENT 
+CREATE TABLE leave(
+    id SERIAL PRIMARY KEY,
+    applicant_name TEXT NOT NULL,
+    created_at timestamptz NOT NULL,
+    designation TEXT NOT NULL,
+    department TEXT NOT NULL,
+    leave_type TEXT NOT NULL,
+    start_date timestamptz NOT NULL,
+    end_date timestamptz NOT NULL
+);
+
+
+-- ! TIMSTAMP FIX FOR ALL TABLE 
+
+-- ALTER TABLE admin_auditlogs
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- TRUNCATE TABLE application CASCADE;
+-- TRUNCATE TABLE application_trail;
+-- TRUNCATE TABLE birth_records;
+-- TRUNCATE TABLE death_records;
+-- TRUNCATE TABLE constructionlicense_records;
+-- TRUNCATE TABLE housetax_records;
+-- TRUNCATE TABLE municipal_records;
+-- TRUNCATE TABLE tradelicense_records;
+
+
+-- ALTER TABLE application
+-- -- DROP COLUMN created_at;
+-- ADD COLUMN created_at timestamptz NOT NULL;
+
+-- ALTER TABLE application_trail
+-- -- DROP COLUMN transfer_time;
+-- ADD COLUMN transfer_time timestamptz NOT NULL;
+
+-- ALTER TABLE birth_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE death_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE constructionlicense_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE housetax_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE municipal_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE tradelicense_records
+-- -- DROP COLUMN timestamp;
+-- ADD COLUMN timestamp timestamptz NOT NULL;
+
+-- ALTER TABLE users
+-- -- -- DROP COLUMN timestamp;
+-- ALTER COLUMN timestamp TYPE timestamptz USING "timestamp"::timestamp with time zone;
+--! END 
