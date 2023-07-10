@@ -10,7 +10,7 @@ import {
   updateUser,
   getUser,
 } from "../services/adminService";
-import { checkPerms } from "../services/userService";
+import { checkPerms } from "../services/adminService";
 import { logger } from "../utils/logger";
 //ENDPOINTS
 router.post(
@@ -99,7 +99,6 @@ router.get(
       if (offset > count.rows[0].count) {
         return res.status(404).send("Records not found");
       }
-      //! Remove Roles, Add perms, Order by perms, admin #1 priority
       const users = await pool.query(
         "SELECT user_id,username,fullname,timestamp FROM users ORDER BY username ASC LIMIT $1 OFFSET $2",
         [limit, offset]
