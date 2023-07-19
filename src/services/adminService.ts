@@ -159,7 +159,7 @@ export async function updateUser({
     const hashedpassword = await hash(password, 10);
 
     const user = await pool.query(
-      "UPDATE users SET fullname = $1,password=$2 WHERE username = $3 RETURNING *",
+      "UPDATE users SET fullname = $1,password=$2, refresh_token=NULL WHERE username = $3 RETURNING *",
       [fullname, hashedpassword, username]
     );
 
@@ -191,6 +191,25 @@ export async function updateUser({
         leave_management
       ]
     );
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+
+export async function deleteRefreshToken(
+  username: string
+) {
+  try {
+
+    const user = await pool.query(
+      "UPDATE users SET refresh_token = NULL WHERE username = $1 RETURNING *",
+      [username]
+    );
+
   } catch (error: any) {
     logger.log(
       "error",
