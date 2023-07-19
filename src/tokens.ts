@@ -47,8 +47,8 @@ export const createRefreshToken = (
 export const appendRefreshToken = (res: Response, refreshtoken: string) => {
   res.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
-    path: "/api/v1/user/refresh_token",
-    sameSite: "none",
+    path: "/api/v1/user",
+    sameSite: "lax",
     secure: true,
   });
 };
