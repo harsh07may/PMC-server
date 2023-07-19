@@ -34,18 +34,18 @@ app.use(express.urlencoded({ extended: true })); //support url encoded bodies
 
 //ROUTES
 
-app.get("/getall", async (req: Request, res: Response) => {
-  try {
-    const allContent = await pool.query("SELECT * from users");
-    if (allContent.rows == 0) {
-      throw new ResourceNotFoundError("Users Not Found");
-    }
-    res.json(allContent.rows);
-  } catch (err: any) {
-    console.log(err.message);
-    res.status(500).send("Internal Error");
-  }
-});
+// app.get("/getall", async (req: Request, res: Response) => {
+//   try {
+//     const allContent = await pool.query("SELECT * from users");
+//     if (allContent.rows == 0) {
+//       throw new ResourceNotFoundError("Users Not Found");
+//     }
+//     res.json(allContent.rows);
+//   } catch (err: any) {
+//     console.log(err.message);
+//     res.status(500).send("Internal Error");
+//   }
+// });
 app.get("/health", async (req: Request, res: Response) => {
   res.send(`I am alive on ${String(getEnv("HOST"))}:${Number(getEnv("PORT"))}`);
 });
