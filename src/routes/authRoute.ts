@@ -12,7 +12,7 @@ import {
   appendRefreshToken,
 } from "../tokens";
 import { pool } from "../utils/db";
-import { fetchUser } from "../services/adminService";
+import { fetchUser, deleteRefreshToken } from "../services/adminService";
 //MODELS
 import { AuthenticationError, InternalError } from "../models/errors";
 import { logger } from "../utils/logger";
@@ -87,12 +87,26 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 // 3.Logout
-router.post("/logout", (req: Request, res: Response) => {
+router.post("/logout", async (req: Request, res: Response) => {
   try {
-    res.clearCookie("refreshtoken", { path: "/api/v1/user/refresh_token" });
-    return res.send({
-      message: "Logged Out",
-    });
+    const token = req.cookies.refreshtoken;
+    if (token) {
+      let payload: JwtPayload | null = null; //Check if RT is valid
+      try {
+        payload = verify(
+          token,
+          String(getEnv("REFRESH_TOKEN_SECRET"))
+        ) as JwtPayload;
+        deleteRefreshToken(payload.username)
+      } catch (error: any) {
+        logger.log("error", `Failed to verify refresh token.${error.message}`);
+      } finally {
+        res.clearCookie("refreshtoken", { path: "/api/v1/user/refresh_token" });
+        return res.send({
+          message: "Logged Out",
+        });
+      }
+    }
   } catch (error: any) {
     logger.log(
       "error",
@@ -107,6 +121,7 @@ router.post("/logout", (req: Request, res: Response) => {
 router.post("/refresh_token", async (req: Request, res: Response) => {
   try {
     //Check if RT exists
+
     const token = req.cookies.refreshtoken;
     if (!token) {
       logger.log(
