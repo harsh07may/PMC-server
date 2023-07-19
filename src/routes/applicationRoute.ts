@@ -31,31 +31,43 @@ import { authMiddleware } from "../authMiddleware";
 //1. Search Application with ref_id, title, holder, sender, receiver, status
 router.get("/searchApplication", async (req: Request, res: Response) => {
   try {
-    const { ref_id, title, holder, sender, receiver, outwarded } = req.query;
-
-    const Ref_id = ref_id ? String(ref_id) : "";
+    const { refNo, title, holder, sender, receiver, outwarded, applicantName, outwardNo, inwardNo } = req.query;
+    // console.log(req.query);
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    const Ref_id = refNo ? String(refNo) : "";
     const Title = title ? String(title) : "";
     const Holder = holder ? String(holder) : "";
     const Sender = sender ? String(sender) : "";
     const Receiver = receiver ? String(receiver) : "";
     const Outwarded = outwarded ? String(outwarded) : "";
+    const ApplicantName = applicantName ? String(applicantName) : "";
+    const OutwardNo = outwardNo ? String(outwardNo) : "";
+    const InwardNo = inwardNo ? String(inwardNo) : "";
     const applications = await searchApplications(
       Ref_id,
       Title,
       Holder,
       Receiver,
       Sender,
-      Outwarded
+      Outwarded,
+      ApplicantName,
+      OutwardNo,
+      InwardNo,
+      page
     );
+    if (applications.result.rows == 0) {
+      throw new ResourceNotFoundError("Applications Not Found");
+    }
     const applicationsWithTrails = [];
-    for (const application of applications.rows) {
+    for (const application of applications.result.rows) {
       const trail = await fetchTrailByRefId(application.ref_id);
       applicationsWithTrails.push({ ...application, trail: trail.rows });
     }
-    if (applications.rows == 0) {
-      throw new ResourceNotFoundError("Applications Not Found");
-    }
-    res.json(applicationsWithTrails);
+    res.json({
+      data: applicationsWithTrails, total: Number(applications.count.rows[0].total_count)
+    });
   } catch (err: any) {
     res.status(err.statusCode).send(err);
   }
@@ -77,17 +89,17 @@ router.post(
         );
       }
 
-      var { ref_id, title } = req.body;
+      var { ref_id, title, applicant, inward_no } = req.body;
 
       //check if app already exists
       const application = await fetchApplicationByRefId(ref_id);
       if (application.rows.length > 0) {
         logger.log("error", `Application with reference No. already exists.`);
         throw new BadRequestError(
-          `Application with reference no.  ${ref_id} already exists.`
+          `Application with reference no. ${ref_id} already exists.`
         );
       }
-      await addNewApplication(ref_id, title);
+      await addNewApplication(ref_id, title, applicant, inward_no);
       const transfer_no = await checkTrail(ref_id);
       await transferNewApplication(ref_id, transfer_no, "none", "central");
       await appendNoteByRefId(
@@ -243,8 +255,8 @@ router.post(
         }
         await updateApplicationTrailStatus(trail_id, "rejected");
       } else {
-        logger.log("error", "Invalid Status. Expected accepted/rejected");
-        throw new BadRequestError("Invalid Status. Expected accepted/rejected");
+        logger.log("error", "Invalid Status. Expected accepted/rejected/recall");
+        throw new BadRequestError("Invalid Status. Expected accepted/rejected/recall");
       }
       res.status(200).send("Successfully Updated");
     } catch (err: any) {
@@ -284,6 +296,15 @@ router.post(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
+      interface Element {
+        trail_id: number;
+        ref_id: string;
+        transfer_no: number;
+        sender: string;
+        receiver: string;
+        status: string;
+        transfer_time: string;
+      }
       const { ref_id } = req.body;
       //*check if app exists and if perms.app is holder and central
       const application = await fetchApplicationByRefId(ref_id);
@@ -300,7 +321,8 @@ router.post(
       }
       //*check if only one trail exists
       const trail = await fetchTrailByRefId(ref_id);
-      if (trail.rowCount > 1) {
+      console.log(trail.rows);
+      if (trail.rows.every((element: Element) => element.status === 'rejected')) {
         throw new AccessDeniedError("Cannot delete this application");
       }
       //*delete app
@@ -318,7 +340,11 @@ router.post(
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const { ref_id } = req.body;
+      const { ref_id, outwardNo } = req.body;
+      //* check if outward is NULL or blank
+      if (!outwardNo || outwardNo == "") {
+        throw new BadRequestError("Invalid outward number");
+      }
       //*check if app exists and if perms.app is holder and central
       const application = await fetchApplicationByRefId(ref_id);
       if (application.rowCount == 0) {
@@ -329,14 +355,14 @@ router.post(
         application.rows[0].holder != req.User.perms.application_tracking
       ) {
         throw new AccessDeniedError(
-          "Insufficient Permissions to delete the application"
+          "Insufficient Permissions to outward the application"
         );
       }
 
       //*outward app
-      await OutwardApplication(ref_id);
+      await OutwardApplication(ref_id, outwardNo);
 
-      res.status(200).send("Successfully Deleted the application");
+      res.status(200).send("Successfully outwarded the application");
     } catch (err: any) {
       res.status(err.statusCode).send(err);
     }
