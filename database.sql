@@ -192,7 +192,7 @@ CREATE TABLE application_trail(
     status application_status NOT NULL DEFAULT 'unseen'
 );
 
-ALTER TABLE application_trail ADD FOREIGN KEY (ref_id) REFERENCES application(ref_id) ON DELETE CASCADE;
+-- ALTER TABLE application_trail ADD FOREIGN KEY (ref_id) REFERENCES application(ref_id) ON DELETE CASCADE;
 
 -- ALTER TABLE application_trail
 -- ALTER COLUMN transfer_time TYPE timestamptz,
