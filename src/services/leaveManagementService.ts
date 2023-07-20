@@ -43,3 +43,15 @@ export async function getLeavesInDateRange(start_date: Date, end_date: Date) {
         throw new InternalError("Internal Server Error");
     }
 }
+
+export async function deleteLeaveById(id: number) {
+    try {
+        const result = await pool.query(
+            `DELETE FROM leave
+            WHERE id = $1`, [id]
+        );
+        return result;
+    } catch (error: any) {
+        throw new InternalError("Internal Server Error");
+    }
+}

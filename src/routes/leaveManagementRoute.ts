@@ -1,7 +1,7 @@
 import { Router, Response, Request } from "express";
 export const router = Router();
 
-import { addLeave, getAllLeaves, getLeavesInDateRange } from "../services/leaveManagementService";
+import { addLeave, deleteLeaveById, getLeavesInDateRange } from "../services/leaveManagementService";
 import { checkPerms } from "../services/adminService";
 import {
   AccessDeniedError,
@@ -58,6 +58,27 @@ router.post("/getLeavesInRange", authMiddleware, async (req: Request, res: Respo
     const leaves = await getLeavesInDateRange(start_date, end_date);
 
     res.json(leaves.rows);
+  } catch (err: any) {
+    res.status(err.statusCode).send(err);
+  }
+});
+
+router.delete("/deleteLeave", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (req.User.perms.leave_management != "editor") {
+      logger.log(
+        "error",
+        `User ${req.User.userName} tried to delete an Application while not being an editor`
+      );
+      throw new AccessDeniedError(
+        "Insufficient Permissions to delete an Application"
+      );
+    }
+    var { id } = req.query;
+    await deleteLeaveById(Number(id));
+
+    // Response
+    res.send(`Successfully deleted Leave Record`);
   } catch (err: any) {
     res.status(err.statusCode).send(err);
   }
