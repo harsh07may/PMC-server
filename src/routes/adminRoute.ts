@@ -2,13 +2,14 @@ import { Router, Response, Request } from "express";
 export const router = Router();
 import { authMiddleware } from "../authMiddleware";
 import { pool } from "../utils/db";
-import { AccessDeniedError, ExistingUserError } from "../models/errors";
+import { AccessDeniedError, ExistingUserError, BadRequestError } from "../models/errors";
 import {
   fetchUser,
   addAuditLog,
   addNewUserToDB,
   updateUser,
   getUser,
+  deleteUser,
 } from "../services/adminService";
 import { checkPerms } from "../services/adminService";
 import { logger } from "../utils/logger";
@@ -53,8 +54,13 @@ router.post(
   "/update-user",
   authMiddleware,
   async (req: Request, res: Response) => {
-    const UserName = req.User.UserName;
+    let UserName = null
     try {
+      try {
+        UserName = req.User.UserName;
+      } catch (error) {
+        throw new BadRequestError("Oops! Something went wrong!");
+      }
       if (!(req.User.perms.admin)) {
         logger.log(
           "error",
@@ -74,8 +80,49 @@ router.post(
       await updateUser(req.body);
 
       await addAuditLog("update", `Updated user %${modifiedUser}`, addingUser);
-
       return res.status(200).send(`Updated ${modifiedUser}`);
+    } catch (err: any) {
+      res.status(err.statusCode).send(err);
+    }
+  }
+);
+
+
+router.post(
+  "/deleteUser",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    let UserName = null
+    try {
+      UserName = req.User.UserName;
+    } catch (error) {
+      ;
+    }
+    try {
+      if (!(req.User.perms.admin)) {
+        logger.log(
+          "error",
+          `User ${UserName} attempted to access a resource without sufficient permissions.`
+        );
+
+        throw new AccessDeniedError("Insufficient Permissions");
+      }
+      const deletedUser = req.body.username; // User to delete
+      const adminUser = req.User.userName; //Performed by
+
+      if (deletedUser == "admin") {
+        throw new AccessDeniedError("This action is not allowed!")
+      }
+
+      const user = await fetchUser(deletedUser);
+      if (user.rows.length === 0) {
+        return res.status(404).send("User not Found");
+      }
+      await deleteUser(deletedUser)
+
+      await addAuditLog("delete", `Deleted user %${deletedUser}`, adminUser);
+
+      return res.status(204).send(`Deleted ${deletedUser}`);
     } catch (err: any) {
       res.status(err.statusCode).send(err);
     }
@@ -95,13 +142,13 @@ router.get(
       const page = Number(req.query.page) || 1;
       const limit = 10;
       const offset = (page - 1) * limit;
-      const count = await pool.query("SELECT COUNT(*) FROM (SELECT * FROM users WHERE fullname  iLIKE '%' || $1 || '%' ) AS subquery",
+      const count = await pool.query("SELECT COUNT(*) FROM (SELECT * FROM users WHERE fullname  iLIKE '%' || $1 || '%' AND soft_deleted = false) AS subquery",
         [fullname]);
       if (offset > count.rows[0].count) {
         return res.status(404).send("Records not found");
       }
       const users = await pool.query(
-        "SELECT user_id,username,fullname,timestamp FROM users WHERE fullname  iLIKE '%' || $3 || '%' ORDER BY username ASC LIMIT $1 OFFSET $2",
+        "SELECT user_id,username,fullname,timestamp FROM users WHERE fullname  iLIKE '%' || $3 || '%' AND soft_deleted = false ORDER BY username ASC LIMIT $1 OFFSET $2",
         [limit, offset, fullname]
       );
 
@@ -147,7 +194,7 @@ router.get(
       }
       let { action, description, performedby, } = req.query;
       if (action === undefined || action === "") {
-        action = ['login', 'update', 'register']
+        action = ['login', 'update', 'register', 'delete']
       }
       const page = Number(req.query.page) || 1;
       const limit = 10;

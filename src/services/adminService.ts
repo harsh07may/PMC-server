@@ -14,7 +14,7 @@ export enum ROLES {
 //SERVICES
 export async function fetchUser(username: string) {
   try {
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [
+    const result = await pool.query("SELECT * FROM users WHERE username = $1 and soft_deleted = false", [
       username,
     ]);
     return result;
@@ -149,6 +149,25 @@ export function checkPerms(
   }
 }
 
+export async function deleteRefreshToken(
+  username: string
+) {
+  try {
+
+    const user = await pool.query(
+      "UPDATE users SET refresh_token = NULL WHERE username = $1 RETURNING *",
+      [username]
+    );
+
+  } catch (error: any) {
+    logger.log(
+      "error",
+      `Failed Query. Error message: ${error.message}. Error Code ${error.code}`
+    );
+    throw new InternalError("Internal Server Error");
+  }
+}
+
 export async function updateUser({
   username,
   fullname,
@@ -176,7 +195,7 @@ export async function updateUser({
     } = perms;
 
     const { user_id } = user.rows[0];
-    return pool.query(
+    const newPerms = pool.query(
       "UPDATE permissions SET admin = $2, municipality_property_records = $3, birth_records = $4, death_records = $5, construction_license_records = $6, house_tax_records = $7, trade_license_records = $8, application_tracking=$9, leave_management=$10 WHERE user_id = $1 RETURNING *",
       [
         user_id,
@@ -191,6 +210,10 @@ export async function updateUser({
         leave_management
       ]
     );
+
+    await deleteRefreshToken(username)
+
+    return newPerms
   } catch (error: any) {
     logger.log(
       "error",
@@ -200,16 +223,27 @@ export async function updateUser({
   }
 }
 
-export async function deleteRefreshToken(
+
+export async function deleteUser(
   username: string
 ) {
   try {
-
     const user = await pool.query(
-      "UPDATE users SET refresh_token = NULL WHERE username = $1 RETURNING *",
+      "UPDATE users SET soft_deleted = true, refresh_token=NULL WHERE username = $1 RETURNING *",
       [username]
     );
 
+    const { user_id } = user.rows[0];
+    await pool.query(
+      "UPDATE permissions SET admin = false, municipality_property_records = 'deny', birth_records = 'deny', death_records = 'deny', construction_license_records = 'deny', house_tax_records = 'deny', trade_license_records = 'deny', application_tracking='deny', leave_management= 'deny' WHERE user_id = $1",
+      [
+        user_id
+      ]
+    );
+
+    await deleteRefreshToken(username)
+
+    return user.rows[0].soft_deleted;
   } catch (error: any) {
     logger.log(
       "error",

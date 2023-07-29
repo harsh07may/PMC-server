@@ -10,6 +10,7 @@ CREATE TABLE users(
     fullname TEXT NOT NULL,
     password TEXT NOT NULL,
     refresh_token TEXT,
+    soft_deleted boolean NOT NULL DEFAULT 'false',
     timestamp timestamptz NOT NULL
 );
 
@@ -169,11 +170,15 @@ ADD
 -- APPLICATION TRACKING
 CREATE TABLE application(
     ref_id TEXT PRIMARY KEY NOT NULL,
+    ext_ref_id TEXT,
     title TEXT NOT NULL,
     created_at timestamptz NOT NULL, 
     outwarded BOOLEAN DEFAULT false,
     holder TEXT NOT NULL DEFAULT 'central',
-    notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**'
+    notes TEXT NOT NULL DEFAULT '**PLEASE DO NOT CLEAR PREVIOUS NOTES**',
+    applicant_name TEXT NOT NULL,
+    inward_no TEXT,
+    outward_no TEXT,
 );
 
 -- ALTER TABLE
