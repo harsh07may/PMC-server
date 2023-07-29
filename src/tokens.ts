@@ -13,7 +13,7 @@ export const createAccessToken = (
     { userId, userName, userRoles, perms },
     String(getEnv("ACCESS_TOKEN_SECRET")),
     {
-      expiresIn: "15m",
+      expiresIn: "10m",
     }
   );
 };
@@ -27,7 +27,7 @@ export const createRefreshToken = (
     { userId, userName, userRoles },
     String(getEnv("REFRESH_TOKEN_SECRET")),
     {
-      expiresIn: "7d",
+      expiresIn: "8h",
     }
   );
 };

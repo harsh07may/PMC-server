@@ -24,7 +24,7 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin: `${getEnv("ORIGIN")}`,
+    origin: `${getEnv("origin")}`,
     credentials: true,
     exposedHeaders: "content-disposition",
   })
@@ -74,7 +74,7 @@ pool.on("connect", async (client: Client) => {
           house_tax_records: "editor",
           trade_license_records: "editor",
           application_tracking: "deny",
-          leave_management: "viewer"
+          leave_management: "editor"
         },
       });
     }

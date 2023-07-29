@@ -37,7 +37,7 @@ router.post(
           "error",
           `Failed to upload file. No file was sent in the request.`
         );
-        throw new InternalError("No File Selected");
+        throw new BadRequestError("No File Selected");
       }
       const FileLink = `${getEnv("FILE_DIRECTORY")}/${req.file.filename}`;
       var newContent;
@@ -56,6 +56,16 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { surveyNo, location, title } = req.body;
+        if (!surveyNo || surveyNo.trim() === '' ||
+          !location || location.trim() === '' ||
+          !title || title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
 
         try {
           newContent = await pool.query(
@@ -82,6 +92,16 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { Month, Year, Title } = req.body;
+        if (!Month || Month.trim() === '' ||
+          !Year || Year.trim() === '' ||
+          !Title || Title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
         try {
           newContent = await pool.query(
             "INSERT INTO birth_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,$5) RETURNING *",
@@ -107,6 +127,16 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { location, houseNo, title } = req.body;
+        if (!location || location.trim() === '' ||
+          !houseNo || houseNo.trim() === '' ||
+          !title || title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
         try {
           newContent = await pool.query(
             "INSERT INTO housetax_records (location, houseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
@@ -134,6 +164,17 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { licenseNo, surveyNo, location, title } = req.body;
+        if (!location || location.trim() === '' ||
+          !surveyNo || surveyNo.trim() === '' ||
+          !licenseNo || licenseNo.trim() === '' ||
+          !title || title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
         try {
           newContent = await pool.query(
             "INSERT INTO constructionlicense_records(licenseno, surveyno, location, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
@@ -159,6 +200,16 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { location, licenseNo, title } = req.body;
+        if (!location || location.trim() === '' ||
+          !licenseNo || licenseNo.trim() === '' ||
+          !title || title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
         try {
           newContent = await pool.query(
             "INSERT INTO tradelicense_records (location, licenseno, title, filelink, timestamp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
@@ -184,6 +235,16 @@ router.post(
           throw new AccessDeniedError("Insufficient Permissions");
         }
         const { Month, Year, Title } = req.body;
+        if (!Month || Month.trim() === '' ||
+          !Year || Year.trim() === '' ||
+          !Title || Title.trim() === ''
+        ) {
+          // At least one of the variables is null or blank
+          logger.log("error", `Attempted to upload file without sufficient fields.`);
+          throw new BadRequestError(
+            `Attempted to upload file without sufficient fields.`
+          );
+        }
         try {
           newContent = await pool.query(
             "INSERT INTO death_records (month,year,title,filelink, timestamp) VALUES($1,$2,$3,$4,$5) RETURNING *",
@@ -323,7 +384,7 @@ router.get("/search", authMiddleware, async (req, res) => {
       const { location, licenseNo, title } = req.query;
       try {
         document = await pool.query(
-          "SELECT * from tradelicense_records WHERE location iLIKE '%' || $1 || '%' AND licenseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%'",
+          "SELECT * from tradelicense_records WHERE licenseno IN (SELECT licenseno from tradelicense_records WHERE location iLIKE '%' || $1 || '%' AND licenseno iLIKE '%' || $2 || '%' AND title iLIKE '%' || $3 || '%')",
           [location, licenseNo, title]
         );
       } catch (error: any) {
@@ -372,10 +433,17 @@ router.get("/search", authMiddleware, async (req, res) => {
 
 router.get("/file-download", authMiddleware, async (req, res) => {
   try {
-    var auditContent;
     const username = req.User.userName;
-    const err = new AccessDeniedError("Insufficient Permissions");
     const { recordid, type } = req.query;
+    if (!String(recordid) || String(recordid).trim() === '' ||
+      !String(type) || String(type).trim() === ''
+    ) {
+      // At least one of the variables is null or blank
+      logger.log("error", `Attempted to download file without sufficient fields.`);
+      throw new BadRequestError(
+        `Unable to download this file.`
+      );
+    }
     const Action = "Download";
 
     var document;
@@ -513,8 +581,8 @@ router.get("/file-download", authMiddleware, async (req, res) => {
 
     if (document.rowCount === 0) throw new Error("File not found");
     try {
-      auditContent = await pool.query(
-        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5) RETURNING *",
+      await pool.query(
+        "INSERT INTO searchadd_auditlogs (timestamp, documenttype, resourcename, action, performedby) VALUES($1,$2,$3,$4,$5)",
         [(new Date()).toISOString(), type, document.rows[0].title, Action, username]
       );
     } catch (error: any) {
@@ -525,7 +593,7 @@ router.get("/file-download", authMiddleware, async (req, res) => {
       throw new InternalError("Internal Server Error");
     }
 
-    const fileName = document.rows[0].filelink.substring(29);
+    // const fileName = document.rows[0].filelink.substring(29);
     const filePath = document.rows[0].filelink;
     res.download(filePath, `${document.rows[0].title}.pdf`);
   } catch (error: any) {

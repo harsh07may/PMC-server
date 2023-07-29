@@ -14,6 +14,7 @@ export const enum TABLE {
   LEAVE_APPLICATIONS = "leave_applications",
 }
 
+// ? this stuff was used for old_leaveManagement route (see old_leaveManagement.ts)
 export function buildZodObjFromPgResult<T extends z.ZodRawShape>(
   zodObj: z.ZodObject<T>,
   result: QueryResult<any>

@@ -118,7 +118,7 @@ router.post("/logout", async (req: Request, res: Response) => {
 });
 
 // 5. Generate token with refresh token
-router.post("/refresh_token", async (req: Request, res: Response) => {
+router.post("/refresh_accessToken", async (req: Request, res: Response) => {
   try {
     //Check if RT exists
 
@@ -147,7 +147,7 @@ router.post("/refresh_token", async (req: Request, res: Response) => {
     ]);
     //Check if RT is in db
     if (user.rowCount == 0 || user.rows[0].refresh_token !== token) {
-      logger.log("error", `Failed to verify refresh token.Not Found in DB`);
+      logger.log("error", `Failed to verify refresh token. Not Found in DB`);
       return res.send({ accesstoken: "" });
     }
 
