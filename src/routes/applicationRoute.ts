@@ -31,12 +31,13 @@ import { authMiddleware } from "../authMiddleware";
 //1. Search Application with ref_id, title, holder, sender, receiver, status
 router.get("/searchApplication", async (req: Request, res: Response) => {
   try {
-    const { refNo, title, holder, sender, receiver, outwarded, applicantName, outwardNo, inwardNo } = req.query;
+    const { refNo, title, holder, sender, receiver, outwarded, applicantName, outwardNo, inwardNo, externalRefNo } = req.query;
     // console.log(req.query);
     const page = Number(req.query.page) || 1;
     const limit = 10;
     const offset = (page - 1) * limit;
     const Ref_id = refNo ? String(refNo) : "";
+    const ExternalRefNo = externalRefNo ? String(externalRefNo) : "";
     const Title = title ? String(title) : "";
     const Holder = holder ? String(holder) : "";
     const Sender = sender ? String(sender) : "";
@@ -47,6 +48,7 @@ router.get("/searchApplication", async (req: Request, res: Response) => {
     const InwardNo = inwardNo ? String(inwardNo) : "";
     const applications = await searchApplications(
       Ref_id,
+      ExternalRefNo,
       Title,
       Holder,
       Receiver,
@@ -89,7 +91,25 @@ router.post(
         );
       }
 
-      var { ref_id, title, applicant, inward_no } = req.body;
+      var { ref_id, external_ref_id, title, applicant, inward_no } = req.body;
+      if (!ref_id || ref_id.trim() === '' ||
+        !title || title.trim() === '' ||
+        !applicant || applicant.trim() === ''
+        // || !inward_no || inward_no.trim() === ''
+      ) {
+        // At least one of the variables is null or blank
+        logger.log("error", `Attempted to create application without sufficient fields.`);
+        throw new BadRequestError(
+          `Attempted to create application without sufficient fields.`
+        );
+      }
+
+      if (!inward_no || inward_no.trim() === '') {
+        inward_no = null;
+      }
+      if (!external_ref_id || external_ref_id.trim() === '') {
+        external_ref_id = null;
+      }
 
       //check if app already exists
       const application = await fetchApplicationByRefId(ref_id);
@@ -99,7 +119,7 @@ router.post(
           `Application with reference no. ${ref_id} already exists.`
         );
       }
-      await addNewApplication(ref_id, title, applicant, inward_no);
+      await addNewApplication(ref_id, external_ref_id, title, applicant, inward_no);
       const transfer_no = await checkTrail(ref_id);
       await transferNewApplication(ref_id, transfer_no, "none", "central");
       await appendNoteByRefId(
@@ -260,7 +280,6 @@ router.post(
       }
       res.status(200).send("Successfully Updated");
     } catch (err: any) {
-      console.log(err);
       res.status(err.statusCode).send(err);
     }
   }
@@ -321,7 +340,6 @@ router.post(
       }
       //*check if only one trail exists
       const trail = await fetchTrailByRefId(ref_id);
-      console.log(trail.rows);
       if (trail.rows.every((element: Element) => element.status === 'rejected')) {
         throw new AccessDeniedError("Cannot delete this application");
       }
@@ -342,7 +360,7 @@ router.post(
     try {
       const { ref_id, outwardNo } = req.body;
       //* check if outward is NULL or blank
-      if (!outwardNo || outwardNo == "") {
+      if (!outwardNo || outwardNo.trim() === '') {
         throw new BadRequestError("Invalid outward number");
       }
       //*check if app exists and if perms.app is holder and central

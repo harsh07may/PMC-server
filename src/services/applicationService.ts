@@ -16,6 +16,7 @@ export async function fetchApplicationByRefId(ref_id: string) {
 
 export async function searchApplications(
   ref_id: string,
+  exterenal_ref_id: string,
   title: string,
   holder: string,
   receiver: string,
@@ -29,19 +30,19 @@ export async function searchApplications(
   try {
     const limit = 10;
     const offset = (page - 1) * limit;
-    console.log({ ref_id, title, holder, receiver, sender, outwarded, applicantName, outwardNo, inwardNo, page, offset });
+    // console.log({ ref_id, exterenal_ref_id, title, holder, receiver, sender, outwarded, applicantName, outwardNo, inwardNo, page, offset });
 
     const count = await pool.query(
-      "SELECT COUNT(*) AS total_count FROM (SELECT DISTINCT a.* FROM application a JOIN application_trail t ON a.ref_id = t.ref_id WHERE a.ref_id ILIKE '%' || $1 || '%' AND a.title ILIKE '%' || $2 || '%' AND a.holder ILIKE '%' || $3 || '%' AND t.receiver ILIKE '%' || $4 || '%' AND t.sender ILIKE '%' || $5 || '%' AND a.outwarded::text ILIKE '%' || $6 || '%' AND COALESCE(a.applicant_name, '') ILIKE '%' || $7 || '%' AND COALESCE(a.inward_no, '') ILIKE '%' || $8 || '%' AND  COALESCE(a.outward_no, '') ILIKE '%' || $9 || '%') AS subquery",
-      [ref_id, title, holder, receiver, sender, outwarded, applicantName, inwardNo, outwardNo]
+      "SELECT COUNT(*) AS total_count FROM (SELECT DISTINCT a.* FROM application a JOIN application_trail t ON a.ref_id = t.ref_id WHERE a.ref_id ILIKE '%' || $1 || '%' AND a.title ILIKE '%' || $2 || '%' AND a.holder ILIKE '%' || $3 || '%' AND t.receiver ILIKE '%' || $4 || '%' AND t.sender ILIKE '%' || $5 || '%' AND a.outwarded::text ILIKE '%' || $6 || '%' AND COALESCE(a.applicant_name, '') ILIKE '%' || $7 || '%' AND COALESCE(a.inward_no, '') ILIKE '%' || $8 || '%' AND  COALESCE(a.outward_no, '') ILIKE '%' || $9 || '%' AND COALESCE(a.ext_ref_id, '') ILIKE '%' || $10 || '%') AS subquery",
+      [ref_id, title, holder, receiver, sender, outwarded, applicantName, inwardNo, outwardNo, exterenal_ref_id]
     );
     // if (offset > count.rows[0].total_count) {
     //   throw new ResourceNotFoundError("Applications Not Found");
     // }
 
     const result = await pool.query(
-      "SELECT DISTINCT a.* FROM application a JOIN application_trail t ON a.ref_id = t.ref_id WHERE a.ref_id ILIKE '%' || $1 || '%' AND a.title ILIKE '%' || $2 || '%' AND a.holder ILIKE '%' || $3 || '%' AND t.receiver ILIKE '%' || $4 || '%' AND t.sender ILIKE '%' || $5 || '%' AND a.outwarded::text ILIKE '%' || $6 || '%' AND COALESCE(a.applicant_name, '') ILIKE '%' || $7 || '%' AND COALESCE(a.outward_no, '') ILIKE '%' || $8 || '%' AND  COALESCE(a.inward_no, '') ILIKE '%' || $9 || '%' ORDER BY ref_id DESC LIMIT $10 OFFSET $11",
-      [ref_id, title, holder, receiver, sender, outwarded, applicantName, outwardNo, inwardNo, limit, offset]
+      "SELECT DISTINCT a.* FROM application a JOIN application_trail t ON a.ref_id = t.ref_id WHERE a.ref_id ILIKE '%' || $1 || '%' AND a.title ILIKE '%' || $2 || '%' AND a.holder ILIKE '%' || $3 || '%' AND t.receiver ILIKE '%' || $4 || '%' AND t.sender ILIKE '%' || $5 || '%' AND a.outwarded::text ILIKE '%' || $6 || '%' AND COALESCE(a.applicant_name, '') ILIKE '%' || $7 || '%' AND COALESCE(a.outward_no, '') ILIKE '%' || $8 || '%' AND  COALESCE(a.inward_no, '') ILIKE '%' || $9 || '%' AND  COALESCE(a.ext_ref_id, '') ILIKE '%' || $10 || '%' ORDER BY ref_id DESC LIMIT $11 OFFSET $12",
+      [ref_id, title, holder, receiver, sender, outwarded, applicantName, outwardNo, inwardNo, exterenal_ref_id, limit, offset]
     );
 
     return { result, count };
@@ -51,11 +52,11 @@ export async function searchApplications(
   }
 }
 
-export async function addNewApplication(ref_id: string, title: string, applicant: string, inward_no: string) {
+export async function addNewApplication(ref_id: string, external_ref_id: string, title: string, applicant: string, inward_no: string) {
   try {
     const result = await pool.query(
-      "INSERT INTO application(ref_id,title, created_at, applicant_name, inward_no) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-      [ref_id, title, (new Date()).toISOString(), applicant, inward_no]
+      "INSERT INTO application(ref_id, title, created_at, applicant_name, inward_no, ext_ref_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+      [ref_id, title, (new Date()).toISOString(), applicant, inward_no, external_ref_id]
     );
 
     return result;
@@ -72,7 +73,7 @@ export async function fetchTrailByStatus(receiver: string, status: string) {
   try {
     // TODO: Send trail_id,title, ref_id, sender,time
     const result = await pool.query(
-      "SELECT a.ref_id, a.title, a.created_at, a.outwarded, a.notes, a.holder AS sender, at.transfer_time, at.trail_id FROM application a INNER JOIN application_trail at on at.ref_id=a.ref_id WHERE at.receiver = $1 and at.status = $2;",
+      "SELECT a.ref_id, a.ext_ref_id, a.title, a.created_at, a.outwarded, a.notes, a.holder AS sender, at.transfer_time, at.trail_id FROM application a INNER JOIN application_trail at on at.ref_id=a.ref_id WHERE at.receiver = $1 and at.status = $2;",
       [receiver, status]
     );
     return result;
@@ -239,7 +240,6 @@ export async function DeleteApplication(ref_id: string) {
       "DELETE FROM application WHERE application.ref_id = $1",
       [ref_id]
     );
-    console.log(ref_id);
   } catch (error: any) {
     logger.log(
       "error",
@@ -255,7 +255,6 @@ export async function OutwardApplication(ref_id: string, outwardNo: string) {
       "UPDATE application SET outwarded = true, outward_no = $1 WHERE ref_id = $2",
       [outwardNo, ref_id]
     );
-    console.log(ref_id);
   } catch (error: any) {
     logger.log(
       "error",
